@@ -3,31 +3,52 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <fcntl.h>
-#include "PDBDebug.hpp"
+#include <poll.h>
+#include "PDB.hpp"
 
 bool is_signaled = false;
 
-void signal_callback_handler(int signum) 
-{
-    if(signum == SIGINT)
-        is_signaled = true;
-}
+// void signal_callback_handler(int signum) 
+// {
+//     if(signum == SIGINT)
+//         is_signaled = true;
+// }
 
 int main()
 {
-    signal(SIGINT, signal_callback_handler);
+    // signal(SIGINT, signal_callback_handler);
+    PDBDebug pdb_instance("mpicxx mpi_test.c -o mpi_test.out", "mpirun -np 4 ./mpi_test.out arg1");
+    size_t pdb_size = pdb_instance.size();
 
-    PDBProcess proc_1;
-    PDBProcess proc_2;
-
-    while(is_signaled == false)
+    while(!is_signaled)
     {
-        // Do some manipulations with gdb output
-        // Read and write to pipes
-    }
+        printf("Message: ");
 
-    proc_1.setPid(0);
-    proc_2.setPid(0);
+        std::string message;   
+        getline(std::cin, message);
+        message += "\n";
+
+        for(size_t i = 0; i < pdb_size; i++)
+        {
+            auto pipe = pdb_instance.getProc(i).getPipe();
+            write(pipe.second, message.c_str(), message.length());
+        }
+
+        for(size_t i = 0; i < pdb_size; i++)
+        {
+            char buff[4096];
+            int nbytes;
+            auto pipe = pdb_instance.getProc(i).getPipe();
+
+            // Wait until we have something to read
+            while((nbytes = read(pipe.first, buff, 4096)) <= 0)
+                ;
+            
+            buff[nbytes] = 0;
+            printf("%ld responded: %s\n", i, buff);
+            usleep(10000);
+        }
+    }
 
     return 0;
 }
