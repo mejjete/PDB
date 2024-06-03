@@ -88,6 +88,7 @@ dkms.conf
 
 # Visual Studio Code
 .vscode/
+.editorconfig
 
 # cmake 
 CMakeLists.txt.user
@@ -104,3 +105,5 @@ _deps
 
 # Misc
 bin/
+build/
+misc/
