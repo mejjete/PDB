@@ -8,15 +8,8 @@
 
 bool is_signaled = false;
 
-// void signal_callback_handler(int signum) 
-// {
-//     if(signum == SIGINT)
-//         is_signaled = true;
-// }
-
 int main()
 {
-    // signal(SIGINT, signal_callback_handler);
     PDBDebug pdb_instance("mpicxx mpi_test.c -o mpi_test.out", "mpirun -np 4 ./mpi_test.out arg1");
     size_t pdb_size = pdb_instance.size();
 

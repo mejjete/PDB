@@ -68,9 +68,6 @@ int MPI_Init(int *argc, char ***argv)
         MPI_Abort(MPI_COMM_WORLD, errno);
     }
 
-    close(fd_read);
-    close(fd_write);
-
     *argc -= mpi_size * 2;
     return init_code;
 }
