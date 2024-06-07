@@ -17,6 +17,8 @@
 #include <wait.h>
 #include <poll.h>
 
+#define PDB_PIPE_LENGTH 20
+
 /**
  *  Process handler that creates connections to spawned processes.
  *  Does not spawn any process by itself.
@@ -57,12 +59,22 @@ private:
     // Open connections to all sub-child processes
     std::vector<PDBProcess> pdb_proc;
 
-    // Parse the input strign args into tokens separated by delim
+    // Parse the input string args into tokens separated by delim
     std::vector<std::string> parseArgs(std::string args, std::string delim);
 
 public:
-    // Execution arguments in a shell-format like 'mpirun -np 4 ./a.out [user-provided-args...]'  
-    PDBDebug(std::string exec_args);
+    /**
+     *  Opens a connection to a spawned processes via PDBRuntime.
+     * 
+     *  @param start_routine - should specify the compiler instance and target-specific flags
+     *  [example] : "mpirun -oversubscribe -np 4"
+     *  
+     *  @param exec - should specify the executable
+     *  @param args - should contain a list of arguments to be passed to executable
+     *  
+     *  PDBDebug("mpirun -np 4 -oversubscribe", "./mpi_test.out", "arg1, arg2, arg3");
+     */  
+    PDBDebug(std::string start_rountine, std::string exec, std::string args);
     ~PDBDebug();
 
     /**

@@ -1,20 +1,22 @@
 #include "PDB.hpp"
 
-PDBDebug::PDBDebug(std::string compile_args, std::string pdb_args)
+PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string args)
 {
     std::vector<std::string> pdb_args_parced;
+    std::vector<std::string> pdb_routine_parced;
 
-    // Tokenize argument string
-    pdb_args_parced = parseArgs(pdb_args, " ;");
+    // Tokenize command-line arguments
+    pdb_args_parced = parseArgs(args, " ;");
+    pdb_routine_parced = parseArgs(start_rountine, " ;");
 
     // Fetch process count from command-line argument string
     int proc_count;
-    auto iter = std::ranges::find(pdb_args_parced, "-np");
+    auto iter = std::ranges::find(pdb_routine_parced, "-np");
 
-    if(iter == pdb_args_parced.end())
+    if(iter == pdb_routine_parced.end())
     {
-        iter = std::ranges::find(pdb_args_parced, "-n");
-        if(iter == pdb_args_parced.end())
+        iter = std::ranges::find(pdb_routine_parced, "-n");
+        if(iter == pdb_routine_parced.end())
             throw std::runtime_error("Missing -np/-n options\n");
     }
     
@@ -27,6 +29,13 @@ PDBDebug::PDBDebug(std::string compile_args, std::string pdb_args)
     if(proc_count <= 0)
         throw std::runtime_error("Invalid number of MPI processes\n");
 
+    // Create temporal file to pass name of pipes
+    char temp_file[] = "/tmp/pdbpipeXXXXXXX";
+    temporal_file = mkstemp(temp_file);
+    if(temporal_file < 0)
+        throw std::system_error(std::error_code(errno, std::generic_category()), 
+            "Error opening temporal file: " + std::string(strerror(errno)));
+
     // Create specified number of process handlers
     std::vector<std::string> proc_name_files;
     
@@ -38,48 +47,77 @@ PDBDebug::PDBDebug(std::string compile_args, std::string pdb_args)
         // Memorize pipe names
         proc_name_files.push_back(proc_filenames.first);
         proc_name_files.push_back(proc_filenames.second);
+
+        write(temporal_file, proc_filenames.first.c_str(), proc_filenames.first.length());
+        write(temporal_file, proc_filenames.second.c_str(), proc_filenames.second.length());
     }
     
     /**
      *  Modify command-line argument string and add extra arguments
      *  
      *  To spawn any process, execvp is used. It accepts char[] as an argument vector.
-     *  The following code adds a few extra arguments which will accommodate names of
-     *  named pipes for each process.
+     *  The following code adds a few extra arguments. This behavior is implementation-defined
+     *  and must synchronize in the receving process 
     */ 
-    int old_argc = pdb_args_parced.size();
-    int total_argc = old_argc + proc_count * 2;
-    char **new_argv = new char*[total_argc + 1];
-    
-    // Copy old arguments
-    int i;
-    for(i = 0; i < old_argc; i++)
+    int old_argc = pdb_routine_parced.size() + pdb_args_parced.size() + 1;
+    int total_argc = old_argc + 3;
+    char **new_argv = new char*[total_argc];
+    int new_arg_size = 0;
+
+    // Step 1: copy routine call
+    for(auto &token : pdb_routine_parced)
     {
-        size_t len = pdb_args_parced[i].length();
-        new_argv[i] = new char[len];
-        memcpy(new_argv[i], pdb_args_parced[i].c_str(), len);
-        new_argv[i][len] = 0;
+        new_argv[new_arg_size] = new char[token.length()];
+        token.copy(new_argv[new_arg_size], token.length(), 0);
+        new_argv[new_arg_size][token.length()] = 0;
+        new_arg_size++;
     }
 
-    // Copy new arguments
-    for(int k = 0; i < total_argc; i++, k++)
+    // Step 2: copy executable name
+    // First launch pdb_launch process to prepare PDB runtime
+    char pdb_launch[] = "./pdb_launch";
+    new_argv[new_arg_size] = new char[strlen(pdb_launch)];
+    std::ranges::copy(pdb_launch, new_argv[new_arg_size]);
+    new_arg_size++;
+
+    new_argv[new_arg_size] = new char[exec.length()];
+    std::ranges::copy(exec, new_argv[new_arg_size]);
+    new_arg_size++;
+
+    // Step 3: copy program arguments
+    for(auto &token : pdb_args_parced)
     {
-        size_t len = proc_name_files[k].length();
-        new_argv[i] = new char[len];
-        memcpy(new_argv[i], proc_name_files[k].c_str(), len);
-        new_argv[i][len] = 0;
+        new_argv[new_arg_size] = new char[token.length()];
+        token.copy(new_argv[new_arg_size], token.length(), 0);
+        new_argv[new_arg_size][token.length()] = 0;
+        new_arg_size++;
     }
+
+    // Step 4: add extra arguments, namely temporal file and process number
+    new_argv[new_arg_size] = new char[strlen(temp_file)];
+    std::ranges::copy(temp_file, new_argv[new_arg_size]);
+    new_arg_size++;
+
+    std::string proc_count_char = std::to_string(proc_count);
+    new_argv[new_arg_size] = new char[proc_count_char.length()];
+    std::ranges::copy(proc_count_char, new_argv[new_arg_size]);
 
     // Terminating NULL string for exec function
     new_argv[total_argc] = NULL;
+
+    for(int i = 0; i < total_argc; i++)
+        std::cout << new_argv[i] << std::endl;
 
     // Spawn process
     exec_pid = fork();
     if(exec_pid == 0)
     {
-        if(execvp(pdb_args_parced[0].c_str(), new_argv) < 0)
+        std::string first_exec = pdb_routine_parced[0]; 
+        first_exec.push_back(0);
+
+        if(execvp(first_exec.c_str(), new_argv) < 0)
             throw std::system_error(std::error_code(errno, std::generic_category()), 
-                "execvp error: " + std::string(strerror(errno)));
+                "execvp error:" + std::string(strerror(errno)));
     }
 
     // After exec, we can finally free argument string
@@ -93,7 +131,6 @@ PDBDebug::~PDBDebug()
 {
     int statlock;
     wait(&statlock);
-    // waitpid(comp_pid, &statlock, WUNTRACED | WCONTINUED);
 }
 
 std::vector<std::string> PDBDebug::parseArgs(std::string pdb_args, std::string delim)
