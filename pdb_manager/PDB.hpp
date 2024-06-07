@@ -18,7 +18,7 @@
 #include <poll.h>
 
 /**
- *  Process Handler that creates connections to spawned processes.
+ *  Process handler that creates connections to spawned processes.
  *  Does not spawn any process by itself.
 */
 class PDBProcess
@@ -51,23 +51,18 @@ public:
 class PDBDebug
 {
 private:
-    pid_t comp_pid;     // Compiler PID process
+    int temporal_file;  // File used to pass arguments through PDB runtime
     pid_t exec_pid;     // Executable PID process
 
     // Open connections to all sub-child processes
     std::vector<PDBProcess> pdb_proc;
 
-    /**
-     *  Parse the input strign args into tokens separated by delim
-    */
+    // Parse the input strign args into tokens separated by delim
     std::vector<std::string> parseArgs(std::string args, std::string delim);
 
 public:
-    /**
-     *  Compiler arguments in a shell-format like 'mpicxx [user-provided-args...]'
-     *  Execution arguments in a shell-format like 'mpirun -np 4 ./a.out [user-provided-args...]'  
-    */
-    PDBDebug(std::string compile_args, std::string exec_args);
+    // Execution arguments in a shell-format like 'mpirun -np 4 ./a.out [user-provided-args...]'  
+    PDBDebug(std::string exec_args);
     ~PDBDebug();
 
     /**
@@ -83,23 +78,4 @@ public:
 
     // Blocking write call to process proc with message msg
     std::string writeProc(int proc, std::string msg);
-};
-
-
-/**
- *  Class for providing runtime support for running processes.
- *  
- *  Actions defined as RuntimeInit and RuntimeExit will 
- *  be called process-wise and have to perform process
- *  workspace initialization
-*/
-template <typename Debugger>
-class PDBRuntime
-{
-public:
-    template <typename ...Args>
-    PDBRuntime(Args... args);
-
-    int RuntimeInit();
-    int RuntimeExit();
 };
