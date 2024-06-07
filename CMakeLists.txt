@@ -8,7 +8,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 add_library(pdbmanager
     pdb_manager/PDBProcess.cpp
     pdb_manager/PDBDebug.cpp
-    pdb_manager/PDBRuntime.cpp
     pdb_manager/PDB.hpp)
 
 target_compile_options(pdbmanager PRIVATE -Wall -Wextra -Wunused-parameter)
