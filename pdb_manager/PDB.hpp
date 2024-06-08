@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <sys/wait.h>
 #include <system_error>
 #include <vector>
@@ -18,6 +19,7 @@
 #include <ranges>
 #include <wait.h>
 #include <poll.h>
+#include <semaphore.h>
 
 #define PDB_PIPE_LENGTH 20
 

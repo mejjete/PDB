@@ -31,6 +31,14 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
 
     // Create temporal file to pass name of pipes
     char temp_file[] = "/tmp/pdbpipeXXXXXXX";
+    temporal_file = mkstemp(temp_file);
+    if(temporal_file < 0)
+        throw std::system_error(std::error_code(errno, std::generic_category()), 
+            "Error opening temporal file: " + std::string(strerror(errno)));
+
+    close(temporal_file);
+    unlink(temp_file);
+
     temporal_file = open(temp_file, O_RDWR | O_SYNC | O_RSYNC | O_CREAT, S_IRWXU);
     if(temporal_file < 0)
         throw std::system_error(std::error_code(errno, std::generic_category()), 
@@ -48,8 +56,8 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
         proc_name_files.push_back(proc_filenames.first);
         proc_name_files.push_back(proc_filenames.second);
 
-        write(temporal_file, proc_filenames.first.c_str(), proc_filenames.first.length());
-        write(temporal_file, proc_filenames.second.c_str(), proc_filenames.second.length());
+        write(temporal_file, proc_filenames.first.c_str(), PDB_PIPE_LENGTH);
+        write(temporal_file, proc_filenames.second.c_str(), PDB_PIPE_LENGTH);
     }
     
     /**
@@ -60,7 +68,7 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
      *  and must synchronize in the receving process 
     */ 
     int old_argc = pdb_routine_parced.size() + pdb_args_parced.size() + 1;
-    int total_argc = old_argc + 3;
+    int total_argc = old_argc + 7;
     char **new_argv = new char*[total_argc];
     int new_arg_size = 0;
 
@@ -78,6 +86,11 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
     char pdb_launch[] = "./pdb_launch";
     new_argv[new_arg_size] = new char[strlen(pdb_launch)];
     std::ranges::copy(pdb_launch, new_argv[new_arg_size]);
+    new_arg_size++;
+
+    std::string debug_type = "gdb";
+    new_argv[new_arg_size] = new char[debug_type.length()];
+    std::ranges::copy(debug_type, new_argv[new_arg_size]);
     new_arg_size++;
 
     new_argv[new_arg_size] = new char[exec.length()];
@@ -101,6 +114,7 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
     std::string proc_count_char = std::to_string(proc_count);
     new_argv[new_arg_size] = new char[proc_count_char.length()];
     std::ranges::copy(proc_count_char, new_argv[new_arg_size]);
+    new_arg_size++;
 
     // Terminating NULL string for exec function
     new_argv[total_argc] = NULL;
