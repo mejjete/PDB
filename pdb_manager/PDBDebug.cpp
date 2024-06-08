@@ -31,7 +31,7 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
 
     // Create temporal file to pass name of pipes
     char temp_file[] = "/tmp/pdbpipeXXXXXXX";
-    temporal_file = mkstemp(temp_file);
+    temporal_file = open(temp_file, O_RDWR | O_SYNC | O_RSYNC | O_CREAT, S_IRWXU);
     if(temporal_file < 0)
         throw std::system_error(std::error_code(errno, std::generic_category()), 
             "Error opening temporal file: " + std::string(strerror(errno)));
@@ -104,9 +104,6 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
 
     // Terminating NULL string for exec function
     new_argv[total_argc] = NULL;
-
-    for(int i = 0; i < total_argc; i++)
-        std::cout << new_argv[i] << std::endl;
 
     // Spawn process
     exec_pid = fork();
