@@ -36,7 +36,7 @@ int MPI_Init(int *argc, char ***argv)
      *  Get the process-related handler to MPI_COMM_WORLD
      *  The following code is highly unportable and should work only for OpenMPI
      */
-    MPI_Comm comm_world = (MPI_Comm) dlsym(RTLD_DEFAULT, "ompi_mpi_comm_world");
+    MPI_Comm comm_world = (MPI_Comm) dlsym(RTLD_DEFAULT, "MPI_COMM_WORLD");
 
     int mpi_rank;
     MPI_Comm_rank(comm_world, &mpi_rank);
