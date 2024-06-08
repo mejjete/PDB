@@ -86,15 +86,18 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
     char pdb_launch[] = "./pdb_launch";
     new_argv[new_arg_size] = new char[strlen(pdb_launch)];
     std::ranges::copy(pdb_launch, new_argv[new_arg_size]);
+    new_argv[new_arg_size][strlen(pdb_launch)] = 0;
     new_arg_size++;
 
     std::string debug_type = "gdb";
     new_argv[new_arg_size] = new char[debug_type.length()];
     std::ranges::copy(debug_type, new_argv[new_arg_size]);
+    new_argv[new_arg_size][debug_type.length()] = 0;
     new_arg_size++;
 
     new_argv[new_arg_size] = new char[exec.length()];
     std::ranges::copy(exec, new_argv[new_arg_size]);
+    new_argv[new_arg_size][exec.length()] = 0;
     new_arg_size++;
 
     // Step 3: copy program arguments
@@ -109,11 +112,13 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
     // Step 4: add extra arguments, namely temporal file and process number
     new_argv[new_arg_size] = new char[strlen(temp_file)];
     std::ranges::copy(temp_file, new_argv[new_arg_size]);
+    new_argv[new_arg_size][strlen(temp_file)] = 0;
     new_arg_size++;
 
     std::string proc_count_char = std::to_string(proc_count);
     new_argv[new_arg_size] = new char[proc_count_char.length()];
     std::ranges::copy(proc_count_char, new_argv[new_arg_size]);
+    new_argv[new_arg_size][proc_count_char.length()] = 0;
     new_arg_size++;
 
     // Terminating NULL string for exec function
