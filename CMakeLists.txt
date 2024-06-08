@@ -1,3 +1,4 @@
+
 cmake_minimum_required(VERSION 3.10)
 project(PDB)
 
@@ -14,6 +15,9 @@ target_compile_options(pdbmanager PRIVATE -Wall -Wextra -Wunused-parameter)
 
 add_executable(pdb_man
 	pdb_manager/PDB.cpp)
+
+add_executable(pdb_launch
+	pdb_manager/PDBLaunch.cpp)
 
 target_compile_options(pdb_man PRIVATE -Wextra -Wunused-parameter)
 target_link_libraries(pdb_man pdbmanager)
