@@ -39,7 +39,7 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
     close(temporal_file);
     unlink(temp_file);
 
-    temporal_file = open(temp_file, O_RDWR | O_SYNC | O_RSYNC | O_CREAT, S_IRWXU);
+    temporal_file = open(temp_file, O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
     if(temporal_file < 0)
         throw std::system_error(std::error_code(errno, std::generic_category()), 
             "Error opening temporal file: " + std::string(strerror(errno)));

@@ -13,6 +13,12 @@ int main()
     PDBDebug pdb_instance("mpirun -np 4", "./mpi_test.out", "arg1 arg2 arg3");
     size_t pdb_size = pdb_instance.size();
 
+    for(size_t i = 0; i < pdb_size; i++)
+    {
+        auto iter = pdb_instance.getProc(i).getPipeNames();
+        std::cout << iter.first << "; " << iter.second << std::endl;
+    } 
+
     while(!is_signaled)
     {
         for(size_t i = 0; i < pdb_size; i++)
