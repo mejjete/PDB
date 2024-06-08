@@ -68,15 +68,15 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
      *  and must synchronize in the receving process 
     */ 
     int old_argc = pdb_routine_parced.size() + pdb_args_parced.size() + 1;
-    int total_argc = old_argc + 7;
+    int total_argc = old_argc + 5;
     char **new_argv = new char*[total_argc];
     int new_arg_size = 0;
 
     // Step 1: copy routine call
     for(auto &token : pdb_routine_parced)
     {
-        new_argv[new_arg_size] = new char[token.length()];
-        token.copy(new_argv[new_arg_size], token.length(), 0);
+        new_argv[new_arg_size] = new char[token.length() + 1];
+        memcpy(new_argv[new_arg_size], token.c_str(), token.length());
         new_argv[new_arg_size][token.length()] = 0;
         new_arg_size++;
     }
@@ -84,18 +84,18 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
     // Step 2: copy executable name
     // First launch pdb_launch process to prepare PDB runtime
     char pdb_launch[] = "./pdb_launch";
-    new_argv[new_arg_size] = new char[strlen(pdb_launch)];
+    new_argv[new_arg_size] = new char[strlen(pdb_launch) + 1];
     std::ranges::copy(pdb_launch, new_argv[new_arg_size]);
     new_argv[new_arg_size][strlen(pdb_launch)] = 0;
     new_arg_size++;
 
     std::string debug_type = "gdb";
-    new_argv[new_arg_size] = new char[debug_type.length()];
+    new_argv[new_arg_size] = new char[debug_type.length() + 1];
     std::ranges::copy(debug_type, new_argv[new_arg_size]);
     new_argv[new_arg_size][debug_type.length()] = 0;
     new_arg_size++;
 
-    new_argv[new_arg_size] = new char[exec.length()];
+    new_argv[new_arg_size] = new char[exec.length() + 1];
     std::ranges::copy(exec, new_argv[new_arg_size]);
     new_argv[new_arg_size][exec.length()] = 0;
     new_arg_size++;
@@ -103,26 +103,26 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
     // Step 3: copy program arguments
     for(auto &token : pdb_args_parced)
     {
-        new_argv[new_arg_size] = new char[token.length()];
+        new_argv[new_arg_size] = new char[token.length() + 1];
         token.copy(new_argv[new_arg_size], token.length(), 0);
         new_argv[new_arg_size][token.length()] = 0;
         new_arg_size++;
     }
 
     // Step 4: add extra arguments, namely temporal file and process number
-    new_argv[new_arg_size] = new char[strlen(temp_file)];
+    new_argv[new_arg_size] = new char[strlen(temp_file) + 1];
     std::ranges::copy(temp_file, new_argv[new_arg_size]);
     new_argv[new_arg_size][strlen(temp_file)] = 0;
     new_arg_size++;
 
     std::string proc_count_char = std::to_string(proc_count);
-    new_argv[new_arg_size] = new char[proc_count_char.length()];
+    new_argv[new_arg_size] = new char[proc_count_char.length() + 1];
     std::ranges::copy(proc_count_char, new_argv[new_arg_size]);
     new_argv[new_arg_size][proc_count_char.length()] = 0;
     new_arg_size++;
 
     // Terminating NULL string for exec function
-    new_argv[total_argc] = NULL;
+    new_argv[new_arg_size] = NULL;
 
     // Spawn process
     exec_pid = fork();
@@ -137,7 +137,7 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
     }
 
     // After exec, we can finally free argument string
-    for(int i = 0; i < total_argc; i++)
+    for(int i = 0; i < new_arg_size; i++)
         delete[] new_argv[i];
 
     delete[] new_argv;
