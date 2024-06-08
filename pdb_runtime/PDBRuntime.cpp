@@ -21,8 +21,6 @@ MPI_Init_t original_MPI_Init = nullptr;
 // Wrapper for MPI_Init
 int MPI_Init(int *argc, char ***argv) 
 {
-    int result = PMPI_Init(argc, argv);
-
     // Get the original MPI_Init function address
     if (!original_MPI_Init) {
         original_MPI_Init = (MPI_Init_t) dlsym(RTLD_NEXT, "MPI_Init");
@@ -31,6 +29,8 @@ int MPI_Init(int *argc, char ***argv)
             exit(EXIT_FAILURE);
         }
     }
+
+    int result = original_MPI_Init(argc, argv);
 
     /**
      *  Get the process-related handler to MPI_COMM_WORLD
