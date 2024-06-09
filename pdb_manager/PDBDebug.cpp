@@ -6,8 +6,8 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
     std::vector<std::string> pdb_routine_parced;
 
     // Tokenize command-line arguments
-    pdb_args_parced = parseArgs(args, " ;");
-    pdb_routine_parced = parseArgs(start_rountine, " ;");
+    pdb_args_parced = parseArgs(args, " ;\n\r");
+    pdb_routine_parced = parseArgs(start_rountine, " ;\n\r");
 
     // Fetch process count from command-line argument string
     int proc_count;
@@ -179,6 +179,7 @@ std::vector<std::string> PDBDebug::parseArgs(std::string pdb_args, std::string d
 {
     char *args = new char[pdb_args.length()];
     memcpy(args, pdb_args.c_str(), pdb_args.length());
+    args[pdb_args.length()] = 0;
     std::vector<std::string> pdb_args_parced;
 
     char *token = strtok(args, delim.c_str());
