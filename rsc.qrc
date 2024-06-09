@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/start.png</file>
+        <file>images/step-into.png</file>
+        <file>images/step-out.png</file>
+        <file>images/step-over.png</file>
+        <file>images/stop.png</file>
+        <file>images/open-file.png</file>
+        <file>images/set-or-remove-breakpoint.png</file>
+    </qresource>
+</RCC>
