@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include "setorremovebreakpointdialog.h"
+#include "highlighter.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -30,10 +31,11 @@ private:
     Ui::MainWindow *ui;
     SetOrRemoveBreakpointDialog* m_breakpointCfgDialog;
     bool m_isBreakpointSet;
+    Highlighter* m_highlighter;
 
     void initUI();
 
     // Helper method.
-    void loadTextFileWithLineNumbers(const QString& filePath);
+    void loadTextFile(const QString& filePath);
 };
 #endif // MAINWINDOW_H

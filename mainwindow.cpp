@@ -13,6 +13,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
     , m_breakpointCfgDialog(nullptr)
     , m_isBreakpointSet(false)
+    , m_highlighter(nullptr)
 {
     ui->setupUi(this);
 
@@ -29,22 +30,19 @@ void MainWindow::initUI()
     setWindowTitle("PDB");
 
     ui->textEdit->setReadOnly(true);
+    m_highlighter = new Highlighter(ui->textEdit->document());
 
     ui->tabWidget->setTabText(0, "Output");
 }
 
-void MainWindow::loadTextFileWithLineNumbers(const QString &filePath)
+void MainWindow::loadTextFile(const QString &filePath)
 {
     QFile file(filePath);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream in(&file);
         QString fileContent;
-        int lineNumber = 1;
-        while (!in.atEnd()) {
-            QString line = in.readLine();
-            fileContent.append(QString::number(lineNumber++) +
-                               ":\t" + line + "\n");
-        }
+        while (!in.atEnd())
+            fileContent = in.readAll();
         ui->textEdit->setPlainText(fileContent);
         file.close();
     } else {
@@ -64,7 +62,7 @@ void MainWindow::on_actionOpen_triggered()
 
     connect(dialog, &QFileDialog::fileSelected, this, [this](const QString &fileName) {
         qDebug() << fileName;
-        loadTextFileWithLineNumbers(fileName);
+        loadTextFile(fileName);
     });
 
     dialog->show();

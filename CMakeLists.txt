@@ -36,6 +36,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         rsc.qrc
         setorremovebreakpointdialog.h setorremovebreakpointdialog.cpp setorremovebreakpointdialog.ui
+        highlighter.h highlighter.cpp
 
     )
 endif()
