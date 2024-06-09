@@ -45,6 +45,7 @@ public:
     ~PDBProcess();
 
     int pollRead() const;
+    int openFIFO();
 
     std::pair<std::string, std::string> getPipeNames() const { return std::make_pair(fd_read_name, fd_write_name); };
     std::pair<int, int> getPipe() const { return std::make_pair(fd_read, fd_write); };

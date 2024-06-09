@@ -68,7 +68,7 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
      *  and must synchronize in the receving process 
     */ 
     int old_argc = pdb_routine_parced.size() + pdb_args_parced.size() + 1;
-    int total_argc = old_argc + 5;
+    int total_argc = old_argc + 6;
     char **new_argv = new char*[total_argc];
     int new_arg_size = 0;
 
@@ -93,6 +93,12 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
     new_argv[new_arg_size] = new char[debug_type.length() + 1];
     std::ranges::copy(debug_type, new_argv[new_arg_size]);
     new_argv[new_arg_size][debug_type.length()] = 0;
+    new_arg_size++;
+
+    std::string debug_opt = "-q";
+    new_argv[new_arg_size] = new char[debug_opt.length() + 1];
+    std::ranges::copy(debug_opt, new_argv[new_arg_size]);
+    new_argv[new_arg_size][debug_opt.length()] = 0;
     new_arg_size++;
 
     new_argv[new_arg_size] = new char[exec.length() + 1];
@@ -141,6 +147,20 @@ PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string arg
         delete[] new_argv[i];
 
     delete[] new_argv;
+
+    /**
+     *  At this point, child process which is now PDB launch will try to open FIFO 
+     *  and block because FIFO is blocked until it is dual-opened. 
+     *  The following calls open() should be synchronized by order with parallel 
+     *  calls to open in child PDB launch
+     */
+    
+    for(auto &proc : pdb_proc)
+    {
+        if(proc.openFIFO() < 0)
+            throw std::system_error(std::error_code(errno, std::generic_category()), 
+                "error opening FIFO" + std::string(strerror(errno)));
+    }
 }
 
 PDBDebug::~PDBDebug()

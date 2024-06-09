@@ -13,30 +13,31 @@ int main()
     PDBDebug pdb_instance("mpirun -np 4", "./mpi_test.out", "arg1 arg2 arg3");
     size_t pdb_size = pdb_instance.size();
 
-    for(size_t i = 0; i < pdb_size; i++)
-    {
-        auto iter = pdb_instance.getProc(i).getPipeNames();
-        std::cout << iter.first << "; " << iter.second << std::endl;
-    } 
-
     while(!is_signaled)
     {
         for(size_t i = 0; i < pdb_size; i++)
         {
+            std::string main_buffer;
+
             char buff[4096];
             int nbytes;
             auto pipe = pdb_instance.getProc(i).getPipe();
 
             // Wait until we have something to read
-            while((nbytes = read(pipe.first, buff, 4096)) <= 0)
-                ;
-            
-            buff[nbytes] = 0;
-            printf("%ld responded: %s\n", i, buff); 
+            while((nbytes = read(pipe.first, buff, 4096)) > 0)
+            {
+                buff[nbytes] = 0;
+                main_buffer += buff;
+
+                if(strstr(buff, "(gdb)") != NULL)
+                    break;
+            }
+
+            printf("%ld responded: %s\n", i, main_buffer.c_str()); 
             usleep(10000);
         }
 
-        printf("Message: ");
+        printf("Command: ");
 
         std::string message;   
         getline(std::cin, message);
@@ -45,7 +46,9 @@ int main()
         for(size_t i = 0; i < pdb_size; i++)
         {
             auto pipe = pdb_instance.getProc(i).getPipe();
-            write(pipe.second, message.c_str(), message.length());
+            
+            if(write(pipe.second, message.c_str(), message.length()) < 0)
+                printf("Error writing to a file\n");
         }
     }
 

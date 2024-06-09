@@ -48,32 +48,39 @@ int main(int argc, char **argv)
     int proc_num = atoi(argv[argc - 1]);
     auto pipes = readPipeNames(argv[argc - 2], proc_num);
 
-    int pipe_in = open(pipes.first.c_str(), O_RDONLY);
-    if(pipe_in < 0)
-        throw std::system_error(std::error_code(errno, std::generic_category()), 
-            "Error opening STDIN pipe file: ");
-
-    int pipe_out = open(pipes.second.c_str(), O_WRONLY);
+    // The following calls to open should be synchronized with calls in PDBDebug constructor
+    // For more information, see PDBDebug
+    int pipe_out = open(pipes.first.c_str(), O_WRONLY);
     if(pipe_out < 0)
         throw std::system_error(std::error_code(errno, std::generic_category()), 
             "Error opening STDOUT pipe file: ");
 
-    printf("Input pipe: %s\n", pipes.first.c_str());
-    printf("Output pipe: %s\n\n", pipes.second.c_str());
+    int pipe_in = open(pipes.second.c_str(), O_RDONLY);
+    if(pipe_in < 0)
+        throw std::system_error(std::error_code(errno, std::generic_category()), 
+            "Error opening STDIN pipe file: ");
+
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
 
     // Redirect standard input to named pipe
     if(dup2(pipe_in, STDIN_FILENO) < 0)
         throw std::system_error(std::error_code(errno, std::generic_category()), 
-            "Error dupping file STDIN to " + pipes.first + ": ");
+            "Error dupping file STDIN to " + pipes.second + ": ");
 
     // Redirect standard output to named pipe
     if(dup2(pipe_out, STDOUT_FILENO) < 0)
         throw std::system_error(std::error_code(errno, std::generic_category()), 
-            "Error dupping file STDOUT to " + pipes.second + ": ");
+            "Error dupping file STDOUT to " + pipes.first + ": ");
 
     // Disable any bufferization 
     setvbuf(stdout, NULL, _IONBF, 0);
-    setvbuf(stdin, NULL, _IONBF, 0);
-    write(STDOUT_FILENO, "H", 1);
+    setvbuf(stdin, NULL, _IONBF, 0); 
+
+    argc -= 2;
+    if(execvp(argv[1], argv + 1) < 0)
+        throw std::system_error(std::error_code(errno, std::generic_category()), 
+            "execvp error: ");
     return 0;
 }
