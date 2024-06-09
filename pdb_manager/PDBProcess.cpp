@@ -34,7 +34,7 @@ PDBProcess::PDBProcess()
     // Set them to NULL and open lately, we don't want to block here upon call to open()
     fd_read = fd_write = 0;
 
-    if(fd_read < 0 | fd_write < 0)
+    if((fd_read < 0) | (fd_write < 0))
         throw std::runtime_error("Can't open named pipes");
     
     fd_read_name = tmp_read_file;
