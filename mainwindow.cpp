@@ -57,11 +57,17 @@ void MainWindow::loadTextFileWithLineNumbers(const QString &filePath)
 
 void MainWindow::on_actionOpen_triggered()
 {
-    QString fileName;
-    fileName = QFileDialog::getOpenFileName(nullptr,
-        "Open File", QDir::homePath(), "C/C++ Files (*.h *.hpp *.c, *.cpp)");
-    qDebug() << fileName;
-    loadTextFileWithLineNumbers(fileName);
+    QFileDialog* dialog = new QFileDialog(this, "Open File",
+        QDir::homePath(), "C/C++ Files (*.h *.hpp *.c *.cpp)");
+
+    dialog->setModal(false);
+
+    connect(dialog, &QFileDialog::fileSelected, this, [this](const QString &fileName) {
+        qDebug() << fileName;
+        loadTextFileWithLineNumbers(fileName);
+    });
+
+    dialog->show();
 }
 
 void MainWindow::on_actionSet_or_Remove_Breakpoint_triggered()
