@@ -28,10 +28,7 @@ void MainWindow::initUI()
 {
     setWindowTitle("PDB");
 
-    //ui->textEdit->setReadOnly(true);
-
-    //ui->splitter->setStretchFactor(0, 1);
-    //ui->splitter->setStretchFactor(1, 0);
+    ui->textEdit->setReadOnly(true);
 
     ui->tabWidget->setTabText(0, "Output");
 }
@@ -61,7 +58,7 @@ void MainWindow::loadTextFileWithLineNumbers(const QString &filePath)
 void MainWindow::on_actionOpen_triggered()
 {
     QString fileName;
-    fileName = QFileDialog::getOpenFileName(this,
+    fileName = QFileDialog::getOpenFileName(nullptr,
         "Open File", QDir::homePath(), "C/C++ Files (*.h *.hpp *.c, *.cpp)");
     qDebug() << fileName;
     loadTextFileWithLineNumbers(fileName);
