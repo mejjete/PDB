@@ -10,7 +10,7 @@ bool is_signaled = false;
 
 int main()
 {
-    PDBDebug pdb_instance("mpirun -np 4", "./mpi_test.out", "arg1 arg2 arg3");
+    pdb::PDBDebug pdb_instance("mpirun -np 4", "./mpi_test.out", "arg1 arg2 arg3");
     size_t pdb_size = pdb_instance.size();
 
     while(!is_signaled)
