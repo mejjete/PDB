@@ -30,6 +30,9 @@ add_library(pdbmanager
 add_executable(pdb_launch
         pdb_manager/PDBLaunch.cpp)
 
+add_executable(pdb_man
+	pdb_manager/PDB.cpp)
+
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(PDB
         MANUAL_FINALIZATION
@@ -43,6 +46,7 @@ endif()
 
 target_compile_options(pdbmanager PRIVATE -Wall -Wextra -Wunused-parameter)
 target_link_libraries(PDB PRIVATE Qt${QT_VERSION_MAJOR}::Widgets pdbmanager)
+target_link_libraries(pdb_man PRIVATE pdbmanager)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
