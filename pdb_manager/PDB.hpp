@@ -1,26 +1,19 @@
 #pragma once
 
-#include "PDBDebugger.hpp"
-#include <iostream>
 #include <cstdio>
 #include <cstring>
 #include <string>
-#include <stdexcept>
-#include <array>
-#include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <sys/wait.h>
-#include <system_error>
 #include <vector>
-#include <algorithm>
-#include <ranges>
 #include <memory>
 #include <wait.h>
 #include <poll.h>
+#include "PDBDebugger.hpp"
 
 namespace pdb
 {

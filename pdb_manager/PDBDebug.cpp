@@ -1,3 +1,5 @@
+#include <system_error>
+#include <algorithm>
 #include "PDB.hpp"
 #include "PDBDebugger.hpp"
 

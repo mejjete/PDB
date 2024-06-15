@@ -6,7 +6,6 @@
 #include <poll.h>
 #include <memory>
 #include "PDB.hpp"
-#include "PDBDebugger.hpp"
 
 bool is_signaled = false;
 
@@ -14,7 +13,7 @@ int main()
 {
     pdb::PDBDebug pdb_instance("mpirun -np 4", "./mpi_test.out", "arg1 arg2 arg3", 
         std::make_unique<pdb::GDBDebugger>());
-        
+
     size_t pdb_size = pdb_instance.size();
 
     while(!is_signaled)

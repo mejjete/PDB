@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include "pdb_manager/PDB.hpp"
-#include "pdb_manager/PDBDebugger.hpp"
 #include <QApplication>
 #include <memory>
 
