@@ -1,5 +1,6 @@
 #pragma once
 
+#include "PDBDebugger.hpp"
 #include <iostream>
 #include <cstdio>
 #include <cstring>
@@ -17,6 +18,7 @@
 #include <vector>
 #include <algorithm>
 #include <ranges>
+#include <memory>
 #include <wait.h>
 #include <poll.h>
 
@@ -68,6 +70,9 @@ namespace pdb
         // Parse the input string args into tokens separated by delim
         std::vector<std::string> parseArgs(std::string args, std::string delim);
 
+        // PDBDrbugger handles all requests to and from actual debugger
+        std::unique_ptr<PDBDebugger> debugger;
+
     public:
         /**
          *  Opens a connection to a spawned processes via PDBRuntime.
@@ -80,7 +85,7 @@ namespace pdb
          *  
          *  PDBDebug("mpirun -np 4 -oversubscribe", "./mpi_test.out", "arg1, arg2, arg3");
          */  
-        PDBDebug(std::string start_rountine, std::string exec, std::string args);
+        PDBDebug(std::string start_rountine, std::string exec, std::string args, std::unique_ptr<PDBDebugger> debug);
         ~PDBDebug();
 
         /**

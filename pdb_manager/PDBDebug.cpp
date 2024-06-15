@@ -1,8 +1,10 @@
 #include "PDB.hpp"
+#include "PDBDebugger.hpp"
 
 namespace pdb
 {
-    PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string args)
+    PDBDebug::PDBDebug(std::string start_rountine, std::string exec, std::string args, 
+        std::unique_ptr<PDBDebugger> debug) : debugger(std::move(debug))
     {
         std::vector<std::string> pdb_args_parced;
         std::vector<std::string> pdb_routine_parced;
@@ -88,27 +90,23 @@ namespace pdb
         char pdb_launch[] = "./pdb_launch";
         new_argv[new_arg_size] = new char[strlen(pdb_launch) + 1];
         memcpy(new_argv[new_arg_size], pdb_launch, sizeof(pdb_launch));
-        // std::ranges::copy(pdb_launch, new_argv[new_arg_size]);
         new_argv[new_arg_size][strlen(pdb_launch)] = 0;
         new_arg_size++;
 
         std::string debug_type = "gdb";
         new_argv[new_arg_size] = new char[debug_type.length() + 1];
         memcpy(new_argv[new_arg_size], debug_type.c_str(), debug_type.length());
-        // std::ranges::copy(debug_type, new_argv[new_arg_size]);
         new_argv[new_arg_size][debug_type.length()] = 0;
         new_arg_size++;
 
         std::string debug_opt = "-q";
         new_argv[new_arg_size] = new char[debug_opt.length() + 1];
         memcpy(new_argv[new_arg_size], debug_opt.c_str(), debug_opt.length());
-        // std::ranges::copy(debug_opt, new_argv[new_arg_size]);
         new_argv[new_arg_size][debug_opt.length()] = 0;
         new_arg_size++;
 
         new_argv[new_arg_size] = new char[exec.length() + 1];
         memcpy(new_argv[new_arg_size], exec.c_str(), exec.length());
-        // std::ranges::copy(exec, new_argv[new_arg_size]);
         new_argv[new_arg_size][exec.length()] = 0;
         new_arg_size++;
 
@@ -124,14 +122,12 @@ namespace pdb
         // Step 4: add extra arguments, namely temporal file and process number
         new_argv[new_arg_size] = new char[strlen(temp_file) + 1];
         memcpy(new_argv[new_arg_size], temp_file, strlen(temp_file));
-        // std::ranges::copy(temp_file, new_argv[new_arg_size]);
         new_argv[new_arg_size][strlen(temp_file)] = 0;
         new_arg_size++;
 
         std::string proc_count_char = std::to_string(proc_count);
         new_argv[new_arg_size] = new char[proc_count_char.length() + 1];
         memcpy(new_argv[new_arg_size], proc_count_char.c_str(), proc_count_char.length());
-        // std::ranges::copy(proc_count_char, new_argv[new_arg_size]);
         new_argv[new_arg_size][proc_count_char.length()] = 0;
         new_arg_size++;
 
@@ -159,10 +155,8 @@ namespace pdb
         /**
          *  At this point, child process which is now PDB launch will try to open FIFO 
          *  and block because FIFO is blocked until it is dual-opened. 
-         *  The following calls open() should be synchronized by order with parallel 
-         *  calls to open in child PDB launch
+         *  The following open() calls should be synchronized with the same open() in a child.
          */
-        
         for(auto &proc : pdb_proc)
         {
             if(proc.openFIFO() < 0)
