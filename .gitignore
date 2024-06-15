@@ -89,6 +89,7 @@ dkms.conf
 # Visual Studio Code
 .vscode/
 .editorconfig
+.cache/
 
 # cmake 
 CMakeLists.txt.user
