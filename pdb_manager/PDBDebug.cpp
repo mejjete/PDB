@@ -112,15 +112,6 @@ namespace pdb
         new_argv[new_arg_size][exec.length()] = 0;
         new_arg_size++;
 
-        // // Step 3: copy program arguments
-        // for(auto &token : pdb_args_parced)
-        // {
-        //     new_argv[new_arg_size] = new char[token.length() + 1];
-        //     token.copy(new_argv[new_arg_size], token.length(), 0);
-        //     new_argv[new_arg_size][token.length()] = 0;
-        //     new_arg_size++;
-        // }
-
         // Step 3: add extra arguments, namely temporal file and process number
         new_argv[new_arg_size] = new char[strlen(temp_file) + 1];
         memcpy(new_argv[new_arg_size], temp_file, strlen(temp_file));
