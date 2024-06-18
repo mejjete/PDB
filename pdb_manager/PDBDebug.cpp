@@ -40,7 +40,7 @@ namespace pdb
         temporal_file = mkstemp(temp_file);
         if(temporal_file < 0)
             throw std::system_error(std::error_code(errno, std::generic_category()), 
-                "Error opening temporal file: " + std::string(strerror(errno)));
+                "Error opening temporal file: ");
 
         close(temporal_file);
         unlink(temp_file);
@@ -48,7 +48,7 @@ namespace pdb
         temporal_file = open(temp_file, O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
         if(temporal_file < 0)
             throw std::system_error(std::error_code(errno, std::generic_category()), 
-                "Error opening temporal file: " + std::string(strerror(errno)));
+                "Error opening temporal file: ");
 
         // Create specified number of process handlers
         std::vector<std::string> proc_name_files;
@@ -145,7 +145,7 @@ namespace pdb
 
             if(execvp(first_exec.c_str(), new_argv) < 0)
                 throw std::system_error(std::error_code(errno, std::generic_category()), 
-                    "execvp error:" + std::string(strerror(errno)));
+                    "execvp error:");
         }
 
         // After exec, we can finally free argument string
@@ -163,7 +163,7 @@ namespace pdb
         {
             if(proc.openFIFO() < 0)
                 throw std::system_error(std::error_code(errno, std::generic_category()), 
-                    "error opening FIFO" + std::string(strerror(errno)));
+                    "error opening FIFO");
         }
     }
 

@@ -14,12 +14,12 @@ namespace pdb
         fd_read = mkstemp(tmp_read_file);
         if(fd_read < 0)
             throw std::system_error(std::error_code(errno, std::generic_category()), 
-                "Error opening read pipe: " + std::string(strerror(errno)));
+                "Error opening read pipe: ");
 
         fd_write = mkstemp(tmp_write_file);
         if(fd_write < 0)
             throw std::system_error(std::error_code(errno, std::generic_category()), 
-                "Error opening write pipe: " + std::string(strerror(errno)));
+                "Error opening write pipe: ");
             
         close(fd_read);
         close(fd_write);
@@ -29,11 +29,11 @@ namespace pdb
 
         if(mkfifo(tmp_read_file, 0666) < 0)
             throw std::system_error(std::error_code(errno, std::generic_category()), 
-                "Error opening input fifo: " + std::string(strerror(errno)));
+                "Error opening input fifo: ");
 
         if(mkfifo(tmp_write_file, 0666) < 0)
             throw std::system_error(std::error_code(errno, std::generic_category()), 
-                "Error opening output fifo: " + std::string(strerror(errno)));
+                "Error opening output fifo: ");
 
         // Set them to NULL and open lately, we don't want to block here upon call to open()
         fd_read = fd_write = 0;
@@ -73,14 +73,14 @@ namespace pdb
                 int bytes_available;
                 if (ioctl(fd_read, FIONREAD, &bytes_available) == -1) 
                     throw std::system_error(std::error_code(errno, std::generic_category()), 
-                        "PDB: error ioctl process handler: " + std::string(strerror(errno)));
+                        "PDB: error ioctl process handler: ");
                 
                 ret = bytes_available;
             }
         }
         else 
             throw std::system_error(std::error_code(errno, std::generic_category()), 
-                "PDB: poll error: " + std::string(strerror(errno)));
+                "PDB: poll error: ");
             
         return ret;
     }
