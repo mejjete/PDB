@@ -17,7 +17,7 @@ namespace pdb
         pdb_br breakpoints; 
     public:
         /**
-         *  Constructs new debugger
+         *  Initializes new debugger
          * 
          *  @param name - debugger executable name
          *  @param opts - debugger specific options
@@ -40,7 +40,7 @@ namespace pdb
 
         virtual pdb_br getBreakpoints() { return breakpoints; };
         virtual std::string getSource() { return "source"; };
-        virtual std::vector<std::string> getSourceFiles() { return std::vector<std::string>(1, "sourceFiles"); };
+        virtual std::vector<std::string> getSourceFiles();
         virtual std::string submitComm(std::string comm) { return comm; };
     };
 

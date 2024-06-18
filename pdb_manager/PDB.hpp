@@ -43,6 +43,13 @@ namespace pdb
         int pollRead() const;
         int openFIFO();
 
+        // Issues a read from a process read-end pipe
+        // Non-blocking call
+        std::string read();
+
+        // Issues a write to a process write-end pipe and wait for responce
+        void write(std::string);
+
         std::pair<std::string, std::string> getPipeNames() const { return std::make_pair(fd_read_name, fd_write_name); };
         std::pair<int, int> getPipe() const { return std::make_pair(fd_read, fd_write); };
     };
@@ -63,7 +70,7 @@ namespace pdb
         // Parse the input string args into tokens separated by delim
         std::vector<std::string> parseArgs(std::string args, std::string delim);
 
-        // PDBDrbugger handles all requests to and from actual debugger
+        // PDBDebugger handles all requests to and from actual debugger
         std::unique_ptr<PDBDebugger> debugger;
 
     public:
