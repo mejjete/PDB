@@ -1,5 +1,8 @@
 #include "PDB.hpp"
+#include <stdexcept>
+#include <string>
 #include <sys/ioctl.h>
+#include <vector>
 
 namespace pdb 
 {
@@ -65,7 +68,7 @@ namespace pdb
             return ret;
         else if(ret > 0)
         {
-            if (fds[0].revents & POLLIN)
+            if(fds[0].revents & POLLIN)
             {
                 int bytes_available;
                 if (ioctl(fd_read, FIONREAD, &bytes_available) == -1) 
@@ -93,5 +96,31 @@ namespace pdb
             return fd_write;
         
         return 0;
+    }
+
+    void PDBProcess::write(std::string msg)
+    {
+        if(msg.length() == 0)
+            return;
+
+        if(::write(fd_write, msg.c_str(), msg.length()) < 0)
+            throw std::system_error(std::error_code(errno, std::generic_category()), 
+                    "PDB: error writting to pipe");
+    }
+
+    std::string PDBProcess::read()
+    {
+        // Wait until we have something to read
+        int nbytes;
+        while((nbytes = pollRead()) == 0)
+            ;
+
+        std::vector<char> to_read(nbytes);
+        if(::read(fd_read, to_read.data(), nbytes) < 0)
+            throw std::system_error(std::error_code(errno, std::generic_category()), 
+                    "PDB: error reading pipe");
+        
+        std::string result(to_read.begin(), to_read.end());
+        return result;
     }
 }
