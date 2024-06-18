@@ -105,7 +105,7 @@ namespace pdb
 
         if(::write(fd_write, msg.c_str(), msg.length()) < 0)
             throw std::system_error(std::error_code(errno, std::generic_category()), 
-                    "PDB: error writting to pipe");
+                "PDB: error writting to pipe");
     }
 
     std::string PDBProcess::read()
@@ -118,7 +118,7 @@ namespace pdb
         std::vector<char> to_read(nbytes);
         if(::read(fd_read, to_read.data(), nbytes) < 0)
             throw std::system_error(std::error_code(errno, std::generic_category()), 
-                    "PDB: error reading pipe");
+                "PDB: error reading pipe");
         
         std::string result(to_read.begin(), to_read.end());
         return result;

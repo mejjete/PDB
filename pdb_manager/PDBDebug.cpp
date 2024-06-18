@@ -73,7 +73,7 @@ namespace pdb
          *  The following code adds a few extra arguments. This behavior is implementation-defined
          *  and must synchronize in the receving process 
         */ 
-        int old_argc = pdb_routine_parced.size() + pdb_args_parced.size() + 1;
+        int old_argc = pdb_routine_parced.size() + 1;
         int total_argc = old_argc + 6;
         char **new_argv = new char*[total_argc];
         int new_arg_size = 0;
@@ -112,16 +112,16 @@ namespace pdb
         new_argv[new_arg_size][exec.length()] = 0;
         new_arg_size++;
 
-        // Step 3: copy program arguments
-        for(auto &token : pdb_args_parced)
-        {
-            new_argv[new_arg_size] = new char[token.length() + 1];
-            token.copy(new_argv[new_arg_size], token.length(), 0);
-            new_argv[new_arg_size][token.length()] = 0;
-            new_arg_size++;
-        }
+        // // Step 3: copy program arguments
+        // for(auto &token : pdb_args_parced)
+        // {
+        //     new_argv[new_arg_size] = new char[token.length() + 1];
+        //     token.copy(new_argv[new_arg_size], token.length(), 0);
+        //     new_argv[new_arg_size][token.length()] = 0;
+        //     new_arg_size++;
+        // }
 
-        // Step 4: add extra arguments, namely temporal file and process number
+        // Step 3: add extra arguments, namely temporal file and process number
         new_argv[new_arg_size] = new char[strlen(temp_file) + 1];
         memcpy(new_argv[new_arg_size], temp_file, strlen(temp_file));
         new_argv[new_arg_size][strlen(temp_file)] = 0;

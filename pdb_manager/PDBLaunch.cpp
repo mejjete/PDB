@@ -3,6 +3,7 @@
  */
 #include "PDB.hpp"
 #include <cstdio>
+#include <unistd.h>
 
 std::pair<std::string, std::string> readPipeNames(const char *temp_file, int proc_num)
 {
@@ -67,18 +68,24 @@ int main(int argc, char **argv)
     // Redirect standard input to named pipe
     if(dup2(pipe_in, STDIN_FILENO) < 0)
         throw std::system_error(std::error_code(errno, std::generic_category()), 
-            "Error dupping file STDIN to " + pipes.second + ": ");
+            "Error dupping STDIN to " + pipes.second + ": ");
 
     // Redirect standard output to named pipe
     if(dup2(pipe_out, STDOUT_FILENO) < 0)
         throw std::system_error(std::error_code(errno, std::generic_category()), 
-            "Error dupping file STDOUT to " + pipes.first + ": ");
+            "Error dupping STDOUT to " + pipes.first + ": ");
+        
+    if(dup2(pipe_out, STDERR_FILENO) < 0)
+        throw std::system_error(std::error_code(errno, std::generic_category()), 
+            "Error dupping STDERR to " + pipes.first + ": ");
 
     // Disable any bufferization 
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stdin, NULL, _IONBF, 0); 
+    setvbuf(stderr, NULL, _IONBF, 0);
 
     argc -= 2;
+    argv[argc] = NULL;
     if(execvp(argv[1], argv + 1) < 0)
         throw std::system_error(std::error_code(errno, std::generic_category()), 
             "execvp error: ");

@@ -31,7 +31,7 @@ int main()
     {
         printf("Command: ");
 
-        std::string message = "";   
+        std::string message;   
         getline(std::cin, message);
         message += "\n";
 
@@ -47,7 +47,6 @@ int main()
         {
             auto& proc = pdb_instance.getProc(i);
             std::string main_buffer = proc.read();
-
             printf("%ld responded: \"%s\"\n", i, main_buffer.c_str());
         }
     }
