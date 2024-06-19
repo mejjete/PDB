@@ -25,6 +25,8 @@ namespace pdb
         PDBDebugger(std::string name, std::string opts) 
             : exec_name(name), exec_opts(opts) {};
 
+        std::string getOptions()    { return exec_opts; };
+        std::string getExecutable() { return exec_name; };
         virtual pdb_br getBreakpoints() = 0;
         virtual std::string getSource() = 0;
         virtual std::vector<std::string> getSourceFiles() = 0;
@@ -35,8 +37,9 @@ namespace pdb
     class GDBDebugger : public PDBDebugger
     {
     public:
+        // By default, gdb will launch with Machine Interface enabled
         GDBDebugger(std::string name = "/usr/bin/gdb", std::string opts = "") 
-            : PDBDebugger(name, opts) {};
+            : PDBDebugger(name, opts + "-q --interpreter=mi2") {};
 
         virtual pdb_br getBreakpoints() { return breakpoints; };
         virtual std::string getSource() { return "source"; };

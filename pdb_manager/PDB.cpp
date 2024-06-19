@@ -20,11 +20,10 @@ int main()
     // Read initial print from debugger
     for(size_t i = 0; i < pdb_size; i++)
     {
+        usleep(100000);
         auto &proc = pdb_instance.getProc(i);
         std::string main_buffer = proc.read();
-
         printf("%ld responded: \"%s\"\n", i, main_buffer.c_str());
-        usleep(10000);
     }
 
     while(!is_signaled)
@@ -41,6 +40,8 @@ int main()
             auto& proc = pdb_instance.getProc(i);
             proc.write(message);
         }
+
+        usleep(10000);
 
         // Read responce from all processes
         for(size_t i = 0; i < pdb_size; i++)

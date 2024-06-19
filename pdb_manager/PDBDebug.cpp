@@ -1,5 +1,6 @@
 #include <system_error>
 #include <algorithm>
+#include <vector>
 #include "PDB.hpp"
 #include "PDBDebugger.hpp"
 
@@ -10,10 +11,12 @@ namespace pdb
     {
         std::vector<std::string> pdb_args_parced;
         std::vector<std::string> pdb_routine_parced;
+        std::vector<std::string> pdb_debugger_parced;
 
         // Tokenize command-line arguments
         pdb_args_parced = parseArgs(args, " ;\n\r");
         pdb_routine_parced = parseArgs(start_rountine, " ;\n\r");
+        pdb_debugger_parced = parseArgs(debugger->getOptions(), " ;\n\r");
 
         // Fetch process count from command-line argument string
         int proc_count;
@@ -73,7 +76,7 @@ namespace pdb
          *  The following code adds a few extra arguments. This behavior is implementation-defined
          *  and must synchronize in the receving process 
         */ 
-        int old_argc = pdb_routine_parced.size() + 1;
+        int old_argc = pdb_routine_parced.size() + pdb_debugger_parced.size() + 2;
         int total_argc = old_argc + 6;
         char **new_argv = new char*[total_argc];
         int new_arg_size = 0;
@@ -87,32 +90,35 @@ namespace pdb
             new_arg_size++;
         }
 
-        // Step 2: copy executable name
-        // First launch pdb_launch process to prepare PDB runtime
+        // Step 2: copy PDB launch application to prepare PDB runtime
         char pdb_launch[] = "./pdb_launch";
         new_argv[new_arg_size] = new char[strlen(pdb_launch) + 1];
         memcpy(new_argv[new_arg_size], pdb_launch, sizeof(pdb_launch));
         new_argv[new_arg_size][strlen(pdb_launch)] = 0;
         new_arg_size++;
 
-        std::string debug_type = "gdb";
-        new_argv[new_arg_size] = new char[debug_type.length() + 1];
-        memcpy(new_argv[new_arg_size], debug_type.c_str(), debug_type.length());
-        new_argv[new_arg_size][debug_type.length()] = 0;
+        // Step 3: copy debugger executable and arguments
+        std::string debug_name = debugger->getExecutable();
+        new_argv[new_arg_size] = new char[debug_name.length() + 1];
+        memcpy(new_argv[new_arg_size], debug_name.c_str(), debug_name.length());
+        new_argv[new_arg_size][debug_name.length()] = 0;
         new_arg_size++;
 
-        std::string debug_opt = "-q";
-        new_argv[new_arg_size] = new char[debug_opt.length() + 1];
-        memcpy(new_argv[new_arg_size], debug_opt.c_str(), debug_opt.length());
-        new_argv[new_arg_size][debug_opt.length()] = 0;
-        new_arg_size++;
+        for(auto &token : pdb_debugger_parced)
+        {
+            new_argv[new_arg_size] = new char[token.length() + 1];
+            memcpy(new_argv[new_arg_size], token.c_str(), token.length());
+            new_argv[new_arg_size][token.length()] = 0;
+            new_arg_size++;
+        }
 
+        // Add executable
         new_argv[new_arg_size] = new char[exec.length() + 1];
         memcpy(new_argv[new_arg_size], exec.c_str(), exec.length());
         new_argv[new_arg_size][exec.length()] = 0;
         new_arg_size++;
 
-        // Step 3: add extra arguments, namely temporal file and process number
+        // Step 4: add extra arguments, namely temporal file and process number
         new_argv[new_arg_size] = new char[strlen(temp_file) + 1];
         memcpy(new_argv[new_arg_size], temp_file, strlen(temp_file));
         new_argv[new_arg_size][strlen(temp_file)] = 0;
