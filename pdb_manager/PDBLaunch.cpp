@@ -79,10 +79,10 @@ int main(int argc, char **argv)
         throw std::system_error(std::error_code(errno, std::generic_category()), 
             "Error dupping STDERR to " + pipes.first + ": ");
 
-    // Disable any bufferization 
-    setvbuf(stdout, NULL, _IONBF, 0);
-    setvbuf(stdin, NULL, _IONBF, 0); 
-    setvbuf(stderr, NULL, _IONBF, 0);
+    // Toggle line bufferization
+    setvbuf(stdout, NULL, _IOLBF, 0);
+    setvbuf(stdin, NULL, _IOLBF, 0);
+    setvbuf(stderr, NULL, _IOLBF, 0);
 
     argc -= 2;
     argv[argc] = NULL;
