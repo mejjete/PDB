@@ -6,6 +6,9 @@
 
 namespace pdb
 {
+    // Forward declaration, see full declaration in PDB.hpp
+    class PDBProcess;
+
     class PDBDebugger
     {
     public:
@@ -13,10 +16,10 @@ namespace pdb
 
         virtual std::string getOptions() = 0;
         virtual std::string getExecutable() = 0;
-        virtual pdb_br getBreakpoints() = 0;
-        virtual std::string getSource() = 0;
-        virtual std::vector<std::string> getSourceFiles() = 0;
-        virtual std::string submitComm(std::string com) = 0;
+        virtual pdb_br getBreakpoints(PDBProcess &) = 0;
+        virtual std::string getSource(PDBProcess &) = 0;
+        virtual std::vector<std::string> getSourceFiles(PDBProcess &) = 0;
+        virtual std::string submitComm(PDBProcess &, std::string com) = 0;
     };
 
     // GNU gdb interface
@@ -37,10 +40,10 @@ namespace pdb
         std::string getOptions() { return exec_opts; };
         std::string getExecutable() { return exec_name; };
  
-        virtual pdb_br getBreakpoints() { return breakpoints; };
-        virtual std::string getSource() { return "source"; };
-        virtual std::vector<std::string> getSourceFiles();
-        virtual std::string submitComm(std::string comm) { return comm; };
+        virtual pdb_br getBreakpoints(PDBProcess &) { return breakpoints; };
+        virtual std::string getSource(PDBProcess &) { return "source"; };
+        virtual std::vector<std::string> getSourceFiles(PDBProcess &);
+        virtual std::string submitComm(PDBProcess &, std::string comm) { return comm; };
     };
 
     // LLVM lldb interface
@@ -60,9 +63,10 @@ namespace pdb
         std::string getOptions() { return exec_opts; };
         std::string getExecutable() { return exec_name; };
 
-        virtual pdb_br getBreakpoints() { return breakpoints; };
-        virtual std::string getSource() { return "source"; };
-        virtual std::vector<std::string> getSourceFiles() { return std::vector<std::string>(1, "sourceFiles"); };
-        virtual std::string submitComm(std::string comm) { return comm; };
+        virtual pdb_br getBreakpoints(PDBProcess &) { return breakpoints; };
+        virtual std::string getSource(PDBProcess &) { return "source"; };
+        virtual std::vector<std::string> getSourceFiles(PDBProcess &) 
+            { return std::vector<std::string>(1, "sourceFiles"); };
+        virtual std::string submitComm(PDBProcess &, std::string comm) { return comm; };
     };
 }

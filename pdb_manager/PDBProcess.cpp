@@ -1,8 +1,12 @@
-#include "PDB.hpp"
+#include "PDBProcess.hpp"
 #include <stdexcept>
-#include <string>
-#include <sys/ioctl.h>
+#include <system_error>
 #include <vector>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/file.h>
+#include <sys/wait.h>
+#include <poll.h>
 
 namespace pdb 
 {
