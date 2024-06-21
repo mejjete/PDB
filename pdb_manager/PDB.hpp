@@ -14,6 +14,7 @@
 #include <memory>
 #include <wait.h>
 #include <poll.h>
+#include <ranges>
 #include "PDBDebugger.hpp"
 
 namespace pdb
@@ -44,6 +45,7 @@ namespace pdb
     {
     private:
         int temporal_file;  // File used to pass arguments through PDB runtime
+        std::string temporal_file_name;
         pid_t exec_pid;     // Executable PID process
 
         // Debugger instances associated with each debugging process
@@ -117,6 +119,7 @@ namespace pdb
             if(temporal_file < 0)
                 throw std::system_error(std::error_code(errno, std::generic_category()), 
                     "Error opening temporal file: ");
+            temporal_file_name = temp_file;
 
             // Create specified number of process handlers
             std::vector<std::string> proc_name_files;

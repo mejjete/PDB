@@ -26,7 +26,7 @@ namespace pdb
 
     public:
         PDBProcess();
-        PDBProcess(const PDBProcess&) = default;
+        PDBProcess(const PDBProcess&) = delete;
         PDBProcess(PDBProcess&&) = default;
         ~PDBProcess();
 

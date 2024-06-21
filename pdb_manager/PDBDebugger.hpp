@@ -3,9 +3,6 @@
 #include <string>
 #include <list>
 #include <vector>
-#include <memory>
-#include <system_error>
-#include <algorithm>
 #include "PDBProcess.hpp"
 
 namespace pdb
@@ -23,7 +20,7 @@ namespace pdb
     public:
         PDBDebugger(std::string name, std::string opts) 
             : exec_name(name), exec_opts(opts) {};
-        PDBDebugger(const PDBDebugger &) = default;
+        PDBDebugger(const PDBDebugger &) = delete;
         PDBDebugger(PDBDebugger &&) = default;
         virtual ~PDBDebugger() {};
 
