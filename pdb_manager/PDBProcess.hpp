@@ -26,21 +26,21 @@ namespace pdb
 
     public:
         PDBProcess();
-
-        PDBProcess(const PDBProcess&) = delete;
+        PDBProcess(const PDBProcess&) = default;
         PDBProcess(PDBProcess&&) = default;
         ~PDBProcess();
 
-        int pollRead() const;
+        std::pair<std::string, std::string> getPipeNames() const { return std::make_pair(fd_read_name, fd_write_name); };
+        std::pair<int, int> getPipe() const { return std::make_pair(fd_read, fd_write); };
         int openFIFO();
+
+    protected:
+        int pollRead() const;
 
         // Issues a read from a process read-end pipe
         std::string read();
 
-        // Issues a write to a process write-end pipe and wait for responce
+        // Issues a write to a process write-end pipe
         void write(std::string);
-
-        std::pair<std::string, std::string> getPipeNames() const { return std::make_pair(fd_read_name, fd_write_name); };
-        std::pair<int, int> getPipe() const { return std::make_pair(fd_read, fd_write); };
     };
 }
