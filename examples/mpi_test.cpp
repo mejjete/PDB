@@ -1,5 +1,5 @@
 /**
- *  Just a test MPI program which just echoes stdin to stdout
+ *  Just a test MPI program which prints its rank
 */
 
 #include <mpi.h>
@@ -14,16 +14,6 @@ int main(int argc, char **argv)
 
     int rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-    char buff[4096] = {0};
-    while(1)
-    {
-        int nbytes = read(STDIN_FILENO, buff, 4096);
-        buff[nbytes] = 0;
-
-        if(nbytes > 0)
-            write(STDOUT_FILENO, buff, nbytes);
-    }
-
+    printf("I am process: %d\n", rank);
     MPI_Finalize();
 }
