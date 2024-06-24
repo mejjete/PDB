@@ -12,8 +12,10 @@ int main()
 {
     using namespace pdb;
 
-    PDBDebug pdb_instance("mpirun -np 4", "./mpi_test.out", "arg1 arg2 arg3", 
+    PDBDebug pdb_instance;
+    pdb_instance.launch("mpirun -np 4", "./mpi_test.out", "arg1 arg2 arg3", 
         PDB_Debug_type::GDB);
-
+    
+    pdb_instance.join();
     return 0;
 }

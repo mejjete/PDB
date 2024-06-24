@@ -55,6 +55,8 @@ namespace pdb
         std::vector<std::string> parseArgs(std::string args, std::string delim);
 
     public:
+        PDBDebug() : temporal_file(0), exec_pid(0) {};
+
         /**
          *  Opens a connection to a spawned processes via PDBRuntime.
          * 
@@ -70,7 +72,7 @@ namespace pdb
          *      [following arguments being passed to a specified debugger type during construction]);
          */  
         template <typename ...DebuggerArgs>
-        PDBDebug(std::string start_rountine, std::string exec, std::string args, 
+        void launch(std::string start_rountine, std::string exec, std::string args, 
             PDB_Debug_type type, DebuggerArgs... dargs)
         {
             std::vector<std::string> pdb_args_parced;
@@ -230,12 +232,12 @@ namespace pdb
                 if(proc->openFIFO() < 0)
                     throw std::system_error(std::error_code(errno, std::generic_category()), 
                         "error opening FIFO");
-            }
+            }            
         }
-
 
         ~PDBDebug();
 
+        void join();
         size_t size() const { return pdb_proc.size(); };
     };
 }
