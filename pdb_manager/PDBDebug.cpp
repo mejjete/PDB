@@ -67,4 +67,13 @@ namespace pdb
 
         return pdb_args_parced;
     }
+
+    std::vector<std::string> PDBDebug::getSourceFiles()
+    {
+        if(pdb_proc.size() == 0)
+            throw std::runtime_error("PDB: Invalid number of processes: ");
+        
+        auto &ptr = pdb_proc[0];
+        return ptr->getSourceFiles();
+    }
 }

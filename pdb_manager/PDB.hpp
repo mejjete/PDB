@@ -58,6 +58,8 @@ namespace pdb
         PDBDebug() : temporal_file(0), exec_pid(0) {};
         ~PDBDebug();
 
+        std::vector<std::string> getSourceFiles();
+
         /**
          *  Opens a connection to a spawned processes via PDBRuntime.
          * 
@@ -233,7 +235,27 @@ namespace pdb
                 if(proc->openFIFO() < 0)
                     throw std::system_error(std::error_code(errno, std::generic_category()), 
                         "error opening FIFO");
-            }            
+            }
+
+            // Make sure that each process has started successfully by checking its output
+            while(true)
+            {
+                bool flag = true;
+
+                for(auto &proc : pdb_proc)
+                {
+                    int nbytes = proc->pollRead();
+                    if(nbytes <= 0) 
+                        flag = false;
+                }
+
+                if(flag = true)
+                    break;
+            }
+
+            // Read out initial print from gdb to clear input for subsequent commands
+            for(auto &proc : pdb_proc)
+                proc->checkInput(proc->readInput());
         }
 
         /**

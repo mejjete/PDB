@@ -24,6 +24,8 @@ namespace pdb
         PDBDebugger(PDBDebugger &&) = default;
         virtual ~PDBDebugger() {};
 
+        virtual std::string readInput() = 0;
+        virtual void checkInput(std::string) = 0;
         virtual std::string getOptions() const = 0;
         virtual std::string getExecutable() const = 0;
         virtual pdb_br getBreakpoints() = 0;
@@ -34,6 +36,13 @@ namespace pdb
     // GNU gdb interface
     class GDBDebugger : public PDBDebugger
     {
+    private:
+        /**
+         *  GDB/MI has special meaning of "(gdb) " literal. The sequence of output records is terminated 
+         *  by "(gdb) ". It can be used as a separator for internal parser.
+         */
+        static std::string term;
+
     public:
         // By default, gdb will launch with Machine Interface enabled
         GDBDebugger(std::string name = "/usr/bin/gdb", std::string opts = "") 
@@ -43,6 +52,8 @@ namespace pdb
         std::string getOptions() const { return exec_opts; };
         std::string getExecutable() const { return exec_name; };
  
+        virtual std::string readInput();
+        virtual void checkInput(std::string);
         virtual pdb_br getBreakpoints() { return breakpoints; };
         virtual std::string getSource() { return "source"; };
         virtual std::vector<std::string> getSourceFiles();
@@ -67,6 +78,8 @@ namespace pdb
         std::string getOptions() const { return exec_opts; };
         std::string getExecutable() const { return exec_name; };
 
+        virtual std::string readInput() { return "NULL"; };
+        virtual void checkInput(std::string) {};
         virtual pdb_br getBreakpoints() { return breakpoints; };
         virtual std::string getSource() { return "source"; };
         virtual std::vector<std::string> getSourceFiles() 
