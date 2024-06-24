@@ -24,24 +24,29 @@ namespace pdb
         }
     }
 
-    void PDBDebug::join()
+    std::pair<int, int> PDBDebug::join()
     {
         int statlock;
         pid_t pid = waitpid(exec_pid, &statlock, WNOHANG);
         if(pid < 0)
         {
             throw std::system_error(std::error_code(errno, std::generic_category()), 
-                "error opening FIFO");
+                "Error waiting for main process");
         }
         else if(pid == 0)
-            return; // If process has not terminated yet, do nothing, destructor will kill this process
+            return std::make_pair(0, 0); // If process has not terminated yet, do nothing, destructor will kill this process
         else
         {
-            // If procecss terminated, ignore return status and set exec_pid to 0. Doing so we 
-            // make sure that destructor won't be waiting for the process to terminate
-            if(WIFEXITED(statlock) || WIFSIGNALED(statlock))
-                exec_pid = 0;
+            // Child process terminated
+            if (WIFEXITED(statlock))
+                return std::make_pair(1, WEXITSTATUS(statlock));
+            else if (WIFSIGNALED(statlock))
+                return std::make_pair(1, WTERMSIG(statlock));
+             else if (WIFSTOPPED(statlock))
+                return std::make_pair(1, WSTOPSIG(statlock));
         }
+
+        return std::make_pair(0, 0);
     }
 
     std::vector<std::string> PDBDebug::parseArgs(std::string pdb_args, std::string delim)

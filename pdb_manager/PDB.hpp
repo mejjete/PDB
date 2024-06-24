@@ -56,6 +56,7 @@ namespace pdb
 
     public:
         PDBDebug() : temporal_file(0), exec_pid(0) {};
+        ~PDBDebug();
 
         /**
          *  Opens a connection to a spawned processes via PDBRuntime.
@@ -235,9 +236,16 @@ namespace pdb
             }            
         }
 
-        ~PDBDebug();
-
-        void join();
+        /**
+         *  Must be called to properly terminate calling process. Returns pair of values describing 
+         *  main process exit status.
+         *  .first - holds 1 if child has terminated and 0 otherwise
+         *  .second - holds exit code of a child
+         * 
+         *  Because this function uses wait() in a non-blocking mode, it can be used by high-level 
+         *  routines to wait until process termination or just kill it by calling destructor
+         */
+        std::pair<int, int> join();
         size_t size() const { return pdb_proc.size(); };
     };
 }
