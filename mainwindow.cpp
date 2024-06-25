@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QColor>
+#include <QScrollBar>
 #include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -35,7 +36,7 @@ void MainWindow::initUI()
     ui->tabWidget->setTabText(0, "Output");
 }
 
-void MainWindow::loadTextFile(const QString &filePath)
+void MainWindow::loadTextFile(const QString &filePath, int position)
 {
     QFile file(filePath);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -45,6 +46,18 @@ void MainWindow::loadTextFile(const QString &filePath)
             fileContent = in.readAll();
         ui->textEdit->setPlainText(fileContent);
         file.close();
+
+        auto cursor = ui->textEdit->textCursor();
+        cursor.movePosition(QTextCursor::Start);
+        cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, position);
+        ui->textEdit->setTextCursor(cursor);
+
+        QScrollBar* vScrollBar = ui->textEdit->verticalScrollBar();
+        int lineHeight = ui->textEdit->fontMetrics().lineSpacing();
+        int scrollValue = (position - 1) * lineHeight;
+        vScrollBar->setValue(scrollValue);
+
+        qDebug() << ui->textEdit->height();
     } else {
         // TODO: Handler the error.
         QString errMessage = "Failed to open the file " + filePath;
@@ -56,13 +69,17 @@ void MainWindow::loadTextFile(const QString &filePath)
 void MainWindow::on_actionOpen_triggered()
 {
     QFileDialog* dialog = new QFileDialog(this, "Open File",
-        QDir::homePath(), "C/C++ Files (*.h *.hpp *.c *.cpp)");
+        QDir::homePath());
 
     dialog->setModal(false);
 
     connect(dialog, &QFileDialog::fileSelected, this, [this](const QString &fileName) {
         qDebug() << fileName;
-        loadTextFile(fileName);
+        m_pdbInstance.launch("mpirun -np 4", fileName.toStdString(), "arg1 arg2 arg3",
+                             pdb::PDB_Debug_type::GDB);
+        auto pair = m_pdbInstance.getFunction("main");
+        qDebug() << pair;
+        loadTextFile(QString::fromStdString(pair.second), pair.first);
     });
 
     dialog->show();

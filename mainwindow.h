@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include "setorremovebreakpointdialog.h"
 #include "highlighter.h"
+#include "pdb_manager/PDB.hpp"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -32,10 +33,11 @@ private:
     SetOrRemoveBreakpointDialog* m_breakpointCfgDialog;
     bool m_isBreakpointSet;
     Highlighter* m_highlighter;
+    pdb::PDBDebug m_pdbInstance;
 
     void initUI();
 
     // Helper method.
-    void loadTextFile(const QString& filePath);
+    void loadTextFile(const QString& filePath, int position);
 };
 #endif // MAINWINDOW_H
