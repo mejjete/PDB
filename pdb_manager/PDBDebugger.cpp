@@ -32,7 +32,7 @@ namespace pdb
 
     std::vector<std::string> GDBDebugger::getSourceFiles()
     {
-        std::string command = "info sources\n";
+        std::string command = makeCommand("info sources");
         write(command);
         
         std::string result = readInput();
@@ -49,7 +49,11 @@ namespace pdb
         std::string source_list(result.begin() + source_start, result.begin() + source_end);
         std::vector<std::string> sources;
 
-        char *token = strtok(const_cast<char*>(source_list.c_str()), " ,");
+        char *list = new char[source_list.length() + 1];
+        memcpy(list, source_list.c_str(), source_list.length());
+        list[source_list.length()] = 0;
+
+        char *token = strtok(list, " ,");
         if(token == NULL)
             throw std::runtime_error("PDB: error parsing <info sources>");
 
@@ -57,10 +61,10 @@ namespace pdb
         {
             sources.push_back(token);
         } while ((token = strtok(NULL, " ,")));
+        delete[] list;
 
         // gdb usually adds 2 additional \n at the end of the last source file
         sources[sources.size() - 1].resize(sources[sources.size() - 1].length() - 4);
         return sources;
     }
-
 }
