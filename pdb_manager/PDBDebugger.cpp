@@ -124,6 +124,9 @@ namespace pdb
         if(func_decl == func_source)
             throw std::runtime_error("PDB: Error parsing <info func " + func_name + ">");
 
+        if(strstr(range[func_source].c_str(), "Non-debugging symbol") != NULL)
+            throw std::runtime_error("PDB: Can't obtain information about non-debugging symbols");
+
         // Fetch path to source file in which function is located
         auto &string_func_source = range[func_source];
         std::string function_declaration(string_func_source.begin() + 2, string_func_source.end() - 4);
