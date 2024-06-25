@@ -89,6 +89,9 @@ namespace pdb
 
     std::pair<int, std::string> GDBDebugger::getFunction(std::string func_name)
     {   
+        if(func_name.length() == 0)
+            throw std::runtime_error("PDB: Empty function name");
+
         std::string command = makeCommand("info func " + func_name);
         write(command);
 
