@@ -76,4 +76,13 @@ namespace pdb
         auto &ptr = pdb_proc[0];
         return ptr->getSourceFiles();
     }
+
+    std::pair<int, std::string> PDBDebug::getFunction(std::string func_name)
+    {
+        if(pdb_proc.size() == 0)
+            throw std::runtime_error("PDB: Invalid number of processes: ");
+        
+        auto &ptr = pdb_proc[0];
+        return ptr->getFunction(func_name);
+    }
 }

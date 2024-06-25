@@ -31,6 +31,7 @@ namespace pdb
         virtual pdb_br getBreakpoints() = 0;
         virtual std::string getSource() = 0;
         virtual std::vector<std::string> getSourceFiles() = 0;
+        virtual std::pair<int, std::string> getFunction(std::string) = 0; 
     };
 
     // GNU gdb interface
@@ -42,6 +43,12 @@ namespace pdb
          *  by "(gdb) ". It can be used as a separator for internal parser.
          */
         static std::string term;
+
+        // Leading \n is essential for gdb, it indicates end of input
+        std::string makeCommand(std::string comm) 
+        { return comm += "\n"; };
+
+        std::vector<std::string> stringifyInput(std::string);
 
     public:
         // By default, gdb will launch with Machine Interface enabled
@@ -57,6 +64,7 @@ namespace pdb
         virtual pdb_br getBreakpoints() { return breakpoints; };
         virtual std::string getSource() { return "source"; };
         virtual std::vector<std::string> getSourceFiles();
+        virtual std::pair<int, std::string> getFunction(std::string);
     };
 
     // LLVM lldb interface
@@ -84,6 +92,6 @@ namespace pdb
         virtual std::string getSource() { return "source"; };
         virtual std::vector<std::string> getSourceFiles() 
             { return std::vector<std::string>(1, "sourceFiles"); };
-        virtual std::string submitComm(std::string comm) { return comm; };
+        virtual std::pair<int, std::string> getFunction(std::string) { return std::make_pair(0, ""); }; 
     };
 }
