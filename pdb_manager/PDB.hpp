@@ -105,9 +105,9 @@ namespace pdb
         auto debug = createDebugger(type, dargs...);
 
         // Tokenize command-line arguments
-        pdb_args_parced = parseArgs(args, " ;\n\r");
-        pdb_routine_parced = parseArgs(start_rountine, " ;\n\r");
-        pdb_debugger_parced = parseArgs(debug->getOptions(), " ;\n\r");
+        pdb_args_parced = this->parseArgs(args, " ;\n\r");
+        pdb_routine_parced = this->parseArgs(start_rountine, " ;\n\r");
+        pdb_debugger_parced = this->parseArgs(debug->getOptions(), " ;\n\r");
 
         // Fetch process count from command-line argument string
         int proc_count;
