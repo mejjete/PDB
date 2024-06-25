@@ -20,12 +20,21 @@ namespace pdb
             int statlock;
             pid_t pid = waitpid(exec_pid, &statlock, WNOHANG);
             if(pid == 0)
+            {
+                printf("PDB: Calling KILL\n");
                 kill(exec_pid, SIGKILL);
+            }
         }
     }
 
     std::pair<int, int> PDBDebug::join()
     {
+        for(auto &iter : pdb_proc)
+            iter->endDebug();
+        
+        // Try to wait a while to let the processes terminate
+        usleep(10000);
+
         int statlock;
         pid_t pid = waitpid(exec_pid, &statlock, WNOHANG);
         if(pid < 0)
@@ -39,11 +48,20 @@ namespace pdb
         {
             // Child process terminated
             if (WIFEXITED(statlock))
+            {
+                exec_pid = 0;
                 return std::make_pair(1, WEXITSTATUS(statlock));
+            }
             else if (WIFSIGNALED(statlock))
+            {
+                exec_pid = 0;
                 return std::make_pair(1, WTERMSIG(statlock));
-             else if (WIFSTOPPED(statlock))
+            }
+            else if (WIFSTOPPED(statlock))
+            {
+                exec_pid = 0;
                 return std::make_pair(1, WSTOPSIG(statlock));
+            }
         }
 
         return std::make_pair(0, 0);

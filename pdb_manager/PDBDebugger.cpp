@@ -147,4 +147,13 @@ namespace pdb
 
         return std::make_pair(std::atoi(accum.c_str()), function_declaration);
     }
+
+    void GDBDebugger::endDebug()
+    {
+        std::string command = makeCommand("quit");
+        write(command);
+
+        // Skip whatever gdb has left on stdout just to let it exist peacefully
+        read();
+    }
 }

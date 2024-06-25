@@ -41,6 +41,12 @@ namespace pdb
 
 
         /**
+         *  Ends debugging session just by commiting "quit"
+         */
+        virtual void endDebug() = 0;
+
+
+        /**
          *  On success, returns std::string containing full path to a source file.
          *  On error, throws std::runtime_error 
          * 
@@ -104,6 +110,7 @@ namespace pdb
         virtual std::vector<std::string> getSourceFiles();
         virtual std::pair<int, std::string> getFunction(std::string);
         virtual void startDebug(std::string) {};
+        virtual void endDebug();
     };
 
     // LLVM lldb interface
@@ -133,5 +140,6 @@ namespace pdb
             { return std::vector<std::string>(1, "sourceFiles"); };
         virtual std::pair<int, std::string> getFunction(std::string) { return std::make_pair(0, ""); }; 
         virtual void startDebug(std::string) {};
+        virtual void endDebug() {};
     };
 }
