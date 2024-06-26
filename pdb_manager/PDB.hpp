@@ -55,6 +55,8 @@ namespace pdb
         std::vector<std::string> parseArgs(std::string args, std::string delim);
 
     public:
+        using PDBbr = typename PDBDebugger::PDBbr;
+
         PDBDebug() : temporal_file(0), exec_pid(0) {};
         ~PDBDebug();
 
@@ -65,7 +67,15 @@ namespace pdb
         void launch(std::string start_rountine, std::string exec, std::string args, 
             PDB_Debug_type type, DebuggerArgs... dargs);
 
+        void setBreakpointsAll(PDBbr brpoint);
+        void setBreakpoint(size_t proc, PDBbr brpoints);
+
+        void startDebug() {};
+        void endDebug() {};
+
         /**
+         *  @param usec - milisecond to wait for processes termination
+         * 
          *  Must be called to properly terminate calling process. Returns pair of values describing 
          *  main process exit status.
          *  .first - holds 1 if child has terminated and 0 otherwise
@@ -74,7 +84,7 @@ namespace pdb
          *  Because this function uses wait() in a non-blocking mode, it can be used by high-level 
          *  routines to wait until process termination or just kill it by calling destructor
          */
-        std::pair<int, int> join();
+        std::pair<int, int> join(useconds_t usec);
         size_t size() const { return pdb_proc.size(); };
     };
 

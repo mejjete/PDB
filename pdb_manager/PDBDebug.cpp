@@ -27,13 +27,13 @@ namespace pdb
         }
     }
 
-    std::pair<int, int> PDBDebug::join()
+    std::pair<int, int> PDBDebug::join(useconds_t usec = 100000)
     {
         for(auto &iter : pdb_proc)
             iter->endDebug();
         
         // Try to wait a while to let the processes terminate
-        usleep(10000);
+        usleep(usec);
 
         int statlock;
         pid_t pid = waitpid(exec_pid, &statlock, WNOHANG);
@@ -86,7 +86,7 @@ namespace pdb
     std::vector<std::string> PDBDebug::getSourceFiles()
     {
         if(pdb_proc.size() == 0)
-            throw std::runtime_error("PDB: Invalid number of processes: ");
+            throw std::runtime_error("PDB: Invalid number of processes: 0");
         
         auto &ptr = pdb_proc[0];
         return ptr->getSourceFiles();
@@ -95,9 +95,27 @@ namespace pdb
     std::pair<int, std::string> PDBDebug::getFunction(std::string func_name)
     {
         if(pdb_proc.size() == 0)
-            throw std::runtime_error("PDB: Invalid number of processes: ");
+            throw std::runtime_error("PDB: Invalid number of processes: 0");
         
         auto &ptr = pdb_proc[0];
         return ptr->getFunction(func_name);
+    }
+
+    void PDBDebug::setBreakpointsAll(PDBbr brpoint)
+    {
+        if(pdb_proc.size() == 0)
+            throw std::runtime_error("PDB: Invalid number of processes: 0");
+
+        for(auto &iter : pdb_proc)
+            iter->setBreakpoint(brpoint);
+    }
+
+    void PDBDebug::setBreakpoint(size_t proc, PDBbr brpoints)
+    {
+        if(proc >= pdb_proc.size())
+            throw std::runtime_error("PDB: Invalid process identifier: " + std::to_string(proc));
+        
+        auto &ptr = pdb_proc[proc];
+        return ptr->setBreakpoint(brpoints);
     }
 }

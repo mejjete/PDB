@@ -19,7 +19,8 @@ int main()
         PDB_Debug_type::GDB);
 
     PDBcommand(pdb_instance);
-    pdb_instance.join();
+
+    pdb_instance.join(100000);
     return 0;
 }
 
@@ -35,9 +36,31 @@ void PDBcommand(pdb::PDBDebug &pdb_instance)
 
     std::cout << "---------------------------------------------------------------------------\n";
 
+    // Print out information about given function
     std::string func = "main";
     auto function = pdb_instance.getFunction("main");
     std::cout << "Function: " << func << std::endl;
     std::cout << "\033[92mSource File: " << function.second << "\033[0m" << std::endl;
     std::cout << "\033[92mLine: " << function.first << "\033[0m" << std::endl;
+
+    bool caught = false;
+
+    try 
+    {
+        // Set up a breakpoint
+        pdb::PDBDebug::PDBbr br(1, function.second);
+        pdb_instance.setBreakpointsAll(br);
+    }
+    catch(std::runtime_error &err)
+    {
+        caught = true;
+    }
+
+    std::cout << "---------------------------------------------------------------------------\n";
+
+    std::cout << "Breakpoint: " << function.second << ":" << 1 << std::endl;
+    if(caught == false)
+        std::cout << "\033[92mBreakpoint set at: " << function.second << ":" << 1 << "\033[0m\n";
+    else 
+        std::cout << "\033[92mError setting breakpoint at: " << function.second << ":" << 1 << "\033[0m\n";
 }

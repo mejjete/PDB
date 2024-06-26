@@ -9,13 +9,15 @@ namespace pdb
 {
     class PDBDebugger : public PDBProcess
     {
-    protected:
-        using pdb_br = std::list<std::pair<std::string, std::vector<int>>>;
+    public:
+        using PDBbr_list = std::vector<std::pair<std::string, std::vector<int>>>;
+        using PDBbr = std::pair<int, std::string>;
 
+    protected:
         const std::string exec_name;
         const std::string exec_opts;
 
-        pdb_br breakpoints;
+        PDBbr_list breakpoints;
 
     public:
         PDBDebugger(std::string name, std::string opts) 
@@ -25,16 +27,16 @@ namespace pdb
         virtual ~PDBDebugger() {};
 
         virtual std::string readInput() = 0;
-        virtual void checkInput(std::string) = 0;
+        virtual void checkInput(std::string) const = 0;
         virtual std::string getOptions() const = 0;
         virtual std::string getExecutable() const = 0;
-        virtual pdb_br getBreakpoints() = 0;
+        virtual PDBbr_list getBreakpointList() = 0;
 
 
         /**
          *  @param args - additional arguments being passed to a debugger during runtime
          *  
-         *  Starts the execution of a debugger just by commiting "exec-run"
+         *  Starts the execution of a debugger just by commiting "run"
          *  On error, throws std::runtime_error
          */
         virtual void startDebug(std::string args) = 0; 
@@ -74,7 +76,9 @@ namespace pdb
          *  first - location of a function in a source file (line)
          *  second - full path of a source file of a given function
          */
-        virtual std::pair<int, std::string> getFunction(std::string func_name) = 0; 
+        virtual std::pair<int, std::string> getFunction(std::string func_name) = 0;
+
+        virtual void setBreakpoint(PDBbr brpoint) = 0;
     };
 
     // GNU gdb interface
@@ -103,9 +107,10 @@ namespace pdb
         std::string getExecutable() const { return exec_name; };
  
         virtual std::string readInput();
-        virtual void checkInput(std::string);
+        virtual void checkInput(std::string) const;
 
-        virtual pdb_br getBreakpoints() { return breakpoints; };
+        virtual void setBreakpoint(PDBbr);
+        virtual PDBbr_list getBreakpointList() { return breakpoints; };
         virtual std::string getSource() { return "source"; };
         virtual std::vector<std::string> getSourceFiles();
         virtual std::pair<int, std::string> getFunction(std::string);
@@ -117,12 +122,12 @@ namespace pdb
     class LLDBDebugger : public PDBDebugger
     {
     private:
-        using PDBDebugger::pdb_br;
+        using PDBDebugger::PDBbr_list;
 
         PDBProcess proc;
         const std::string exec_name;
         const std::string exec_opts;
-        pdb_br breakpoints;
+        PDBbr_list breakpoints;
 
     public:
         LLDBDebugger(std::string name = "/usr/bin/lldb", std::string opts = "") 
@@ -133,8 +138,10 @@ namespace pdb
         std::string getExecutable() const { return exec_name; };
 
         virtual std::string readInput() { return "NULL"; };
-        virtual void checkInput(std::string) {};
-        virtual pdb_br getBreakpoints() { return breakpoints; };
+        virtual void checkInput(std::string) const {};
+
+        virtual void setBreakpoint(PDBbr) {};
+        virtual PDBbr_list getBreakpointList() { return breakpoints; };
         virtual std::string getSource() { return "source"; };
         virtual std::vector<std::string> getSourceFiles() 
             { return std::vector<std::string>(1, "sourceFiles"); };

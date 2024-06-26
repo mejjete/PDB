@@ -25,7 +25,7 @@ set(PROJECT_SOURCES
 add_library(pdbmanager
     pdb_manager/PDBProcess.cpp
     pdb_manager/PDBDebug.cpp
-    pdb_manager/PDBDebugger.cpp
+    pdb_manager/GDBDebugger.cpp
     pdb_manager/PDB.hpp)
 
 add_executable(pdb_launch

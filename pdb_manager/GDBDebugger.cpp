@@ -3,6 +3,7 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <ranges>
 
 namespace pdb
 {
@@ -24,7 +25,7 @@ namespace pdb
         return main_buffer;
     }
 
-    void GDBDebugger::checkInput(std::string input)
+    void GDBDebugger::checkInput(std::string input) const
     {
         if(input.find("No debugging symbols found") != std::string::npos)
             throw std::runtime_error("PDB: No debugging symbols found");
@@ -60,7 +61,7 @@ namespace pdb
         // Find first occurence of ^done
         auto done_expr = result.find("^done");
         if(done_expr == std::string::npos)
-            throw std::runtime_error("PDB: Error parsing <info sources>");
+            throw std::runtime_error("PDB: Failed parsing <info sources>");
         
         auto source_end = done_expr - 2;
         auto source_start = result.rfind("\"", done_expr - 3) + 1;
@@ -74,7 +75,7 @@ namespace pdb
 
         char *token = strtok(list, " ,");
         if(token == NULL)
-            throw std::runtime_error("PDB: Error parsing <info sources>");
+            throw std::runtime_error("PDB: Failed parsing <info sources>");
 
         do
         {
@@ -125,10 +126,10 @@ namespace pdb
         }
 
         if(func_decl == func_source)
-            throw std::runtime_error("PDB: Error parsing <info func " + func_name + ">");
+            throw std::runtime_error("PDB: Failed parsing <info func " + func_name + ">");
 
         if(strstr(range[func_source].c_str(), "Non-debugging symbol") != NULL)
-            throw std::runtime_error("PDB: Can't obtain information about non-debugging symbols");
+            throw std::runtime_error("PDB: Cannot obtain information about non-debugging symbols");
 
         // Fetch path to source file in which function is located
         auto &string_func_source = range[func_source];
@@ -153,7 +154,99 @@ namespace pdb
         std::string command = makeCommand("quit");
         write(command);
 
-        // Skip whatever gdb has left on stdout just to let it exist peacefully
+        // Skip whatever gdb has left on stdout just to let it exit peacefully
         read();
+    }
+
+    void GDBDebugger::setBreakpoint(PDBbr brpoint)
+    {
+        if(brpoint.second.length() == 0)
+            throw std::runtime_error("PDB: Error setting breakpoint in unknown file");
+
+        bool br_found = false;
+
+        // Check if we have already set up this breakpoint
+        for(auto &source_files : breakpoints)
+        {
+            if(source_files.first == brpoint.second)
+            {
+                auto br = std::ranges::find(source_files.second, brpoint.first);
+                if(br != source_files.second.end())
+                {
+                    br_found = true;
+                    break;
+                }
+            }
+        }
+
+        // If breakpoint is already set on given position, return
+        if(br_found == true)
+            return;
+
+        // If breakpoint has not been set yet, add it to breakpoint list
+        std::string command = makeCommand("b " + brpoint.second + ":" + std::to_string(brpoint.first));
+        write(command);
+
+        std::string result = readInput();
+        checkInput(result);
+        auto range = stringifyInput(result);
+
+        /**
+         *  At this moment, we may want to check output from "br" command 
+         *  to understand if breakpoint has been set. We have to check second
+         *  string if it has substring "No source file" and the line right 
+         *  before "^done" on more detailed information if so exist
+         */
+        if(strstr(range[1].c_str(), "No source file") != NULL)
+        {
+            throw std::runtime_error("PDB: Cannot set breakpoint at specified location: " 
+                + brpoint.second + ":" + std::to_string(brpoint.first));
+        }
+
+        // Find string that starts with "=breakpoint-created"
+        auto br_created = std::ranges::find(range, "^done") - 1;
+        
+        // Tokenize string
+        char *list = new char[br_created->length() + 1];
+        memcpy(list, br_created->c_str(), br_created->length());
+        list[br_created->length()] = 0;
+
+        char *token = strtok(list, ",");
+
+        do
+        {
+            if(strstr(token, "addr") != NULL)
+                break;
+        } while((token = strtok(NULL, ",")));
+
+        // Thow an exception if we failed to parse command
+        if(strstr(token, "addr") == NULL)
+        {
+            throw std::runtime_error("PDB: Failed parsing <br " + brpoint.second + ":" 
+                + std::to_string(brpoint.first) + ">");
+        }
+
+        // If breakpoint has status "PENDING", it means we cannot obtain its information from executable
+        if(strstr(token, "<PENDING>") != NULL)
+        {
+            throw std::runtime_error("PDB: Cannot set breakpoint at specified location: " 
+                + brpoint.second + ":" + std::to_string(brpoint.first));
+        }
+        
+        // If status contains address, we successfully set up a breakpoint, now add it to list
+        br_found = false;
+
+        for(auto &source_files : breakpoints)
+        {
+            if(source_files.first == brpoint.second)
+            {
+                source_files.second.push_back(brpoint.first);
+                br_found = true;
+            }
+        }
+
+        // Add it as new pair
+        if(br_found != true)
+            breakpoints.push_back(std::make_pair(brpoint.second, std::vector<int>(1, brpoint.first)));
     }
 }
