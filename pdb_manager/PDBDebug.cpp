@@ -21,7 +21,7 @@ namespace pdb
             pid_t pid = waitpid(exec_pid, &statlock, WNOHANG);
             if(pid == 0)
             {
-                printf("PDB: Calling KILL\n");
+                printf("PDB: Killing main process\n");
                 kill(exec_pid, SIGKILL);
             }
         }
@@ -46,21 +46,18 @@ namespace pdb
             return std::make_pair(0, 0); // If process has not terminated yet, do nothing, destructor will kill this process
         else
         {
-            // Child process terminated
+            exec_pid = 0;
+
             if (WIFEXITED(statlock))
-            {
-                exec_pid = 0;
                 return std::make_pair(1, WEXITSTATUS(statlock));
-            }
             else if (WIFSIGNALED(statlock))
-            {
-                exec_pid = 0;
                 return std::make_pair(1, WTERMSIG(statlock));
-            }
             else if (WIFSTOPPED(statlock))
-            {
-                exec_pid = 0;
                 return std::make_pair(1, WSTOPSIG(statlock));
+            else
+            {
+                exec_pid = pid;
+                return std::make_pair(0, 0);
             }
         }
 

@@ -18,10 +18,8 @@ int main()
     pdb_instance.launch("mpirun -np 4", "./mpi_test.out", "arg1 arg2 arg3", 
         PDB_Debug_type::GDB);
 
-    // PDBcommand(pdb_instance);
-
+    PDBcommand(pdb_instance);
     pdb_instance.join();
-
     return 0;
 }
 
