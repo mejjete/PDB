@@ -7,6 +7,10 @@
 #include <string>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <sstream>
+#include <mutex>
+#include <thread>
+#include <memory>
 
 namespace pdb
 {
@@ -16,13 +20,50 @@ namespace pdb
     */
     class PDBProcess
     {
+    public:
+        
+        /**
+         *  
+         */
+        class StreamBuffer
+        {
+        private:
+            std::mutex mut;
+            std::stringstream stream;
+            size_t stream_size;
+
+        public:
+            StreamBuffer() : stream_size(0) {};
+            std::string get();
+            void add(std::string);
+        };
+
+        /**
+         * 
+         */
+        class InputBuffer : protected StreamBuffer
+        {
+        public:
+            InputBuffer() : StreamBuffer() {};
+            std::string get() { return StreamBuffer::get(); };
+        };
+
     private:
         int fd_read;
         int fd_write;
 
+        // Protects read-end and write-end pipes
+        std::mutex file_mut;
+
+        // Data stream
+        std::shared_ptr<StreamBuffer> buffer;
+
         // File names for named pipes
         std::string fd_read_name;
         std::string fd_write_name;
+
+        // Thread that constantly polls read-end pipe to check if it has something to read
+        std::thread thread;
 
     public:
         PDBProcess();
@@ -36,7 +77,6 @@ namespace pdb
         int pollRead() const;
 
     protected:
-
         // Issues a read from a process read-end pipe
         std::string read();
 

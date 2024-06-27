@@ -47,10 +47,15 @@ namespace pdb
         
         fd_read_name = tmp_read_file;
         fd_write_name = tmp_write_file;
+
+        buffer = std::make_shared<StreamBuffer>();
     }
 
     PDBProcess::~PDBProcess()
     {
+        if(thread.joinable())
+            thread.join();
+
         if(fd_read > 0)
             close(fd_read);
         if(fd_write > 0)
@@ -89,6 +94,49 @@ namespace pdb
         return ret;
     }
 
+    void monitor(int fd, std::mutex &file_mut, std::shared_ptr<PDBProcess::StreamBuffer> buffer)
+    {
+        struct pollfd fds[1];
+        fds[0].fd = fd;
+        fds[0].events = POLLIN;
+
+        int ret = poll(fds, 1, 0);
+        int result;
+
+        while(true)
+        {
+            if(ret > 0)
+            {
+                if(fds[0].revents & POLLIN)
+                {
+                    int bytes_available;
+                    if(ioctl(fd, FIONREAD, &bytes_available) == -1) 
+                        throw std::system_error(std::error_code(errno, std::generic_category()), 
+                            "ioctl error");
+                    
+                    result = bytes_available;
+                }
+            }
+            else 
+                result = 0;
+
+            // Read whatever we have on descriptor fd to shared buffer
+            if(result > 0)
+            {   
+                std::lock_guard<std::mutex> lock(file_mut);
+                std::vector<char> to_read(result);
+                if(::read(fd, to_read.data(), result) < 0)
+                    throw std::system_error(std::error_code(errno, std::generic_category()), 
+                        "PDB: error reading pipe");
+        
+                std::string read_str(to_read.begin(), to_read.end());
+                buffer->add(read_str);
+            }            
+
+            usleep(1000);
+        }
+    }
+
     int PDBProcess::openFIFO()
     {
         fd_read = open(fd_read_name.c_str(), O_RDONLY);
@@ -99,6 +147,7 @@ namespace pdb
         if(fd_write < 0)
             return fd_write;
         
+        thread = std::thread(monitor, fd_read, std::ref(file_mut), buffer);
         return 0;
     }
 
@@ -126,5 +175,26 @@ namespace pdb
         
         std::string result(to_read.begin(), to_read.end());
         return result;
+    }
+
+    void PDBProcess::StreamBuffer::add(std::string str)
+    {
+        if(str.length() == 0)
+            return;
+
+        std::lock_guard<std::mutex> lock(mut);
+        stream << str;
+        stream_size += str.length();
+    }
+
+    std::string PDBProcess::StreamBuffer::get()
+    {
+        std::lock_guard<std::mutex> lock(mut);
+        std::string result;
+        stream >> result;
+        return result;
+        // std::vector<char> vect_array;
+        // vect_array.resize(stream_size);
+        // stream.read(vect_array.data(), stream_size);
     }
 }
