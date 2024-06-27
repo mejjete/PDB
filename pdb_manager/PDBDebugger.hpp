@@ -78,6 +78,12 @@ namespace pdb
          */
         virtual std::pair<int, std::string> getFunction(std::string func_name) = 0;
 
+
+        /**
+         *  @param brpoint - breakpoint to be set
+         *  
+         *  Sets breakpoint in executable described by PDBbr object.
+         */
         virtual void setBreakpoint(PDBbr brpoint) = 0;
     };
 
