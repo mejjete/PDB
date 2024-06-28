@@ -24,32 +24,36 @@ namespace pdb
     public:
         
         /**
-         *  Container represents a stream from a read-end pipe.
-         *  When content of a file read to internal buffer, it gets 
-         *  stringified.
+         *  Container represents an asynchronous stream from a read-end pipe. Among all, 
+         *  PDBProcess is also responsible for reading and writting commands to communication 
+         *  channels. This class solves this problem.
+         *  
+         *  It safely fetches input data from channel and provides interface for reading and writting.
+         *  Also, it stringifies incoming data.
          */
         class StreamBuffer
         {
         private:
             std::mutex mut;
+
+            // First-in first-out buffer 
             std::list<std::string> stream_buffer;
-            size_t stream_size;
 
         public:
-            StreamBuffer() : stream_size(0) {};
-            size_t size() const { return stream_size; };
+            StreamBuffer() {};
+
+            // Number of lines ready to be fetched with get() method
+            size_t size() const { return stream_buffer.size(); };
+            
+            // Returns 1 string per 1 call. If no string is available to read, returns ""
             std::string get();
-            void add(std::string);
-        };
 
-        /**
-         * 
-         */
-        class InputBuffer : protected StreamBuffer
-        {
-        public:
-            InputBuffer() : StreamBuffer() {};
-            std::string get() { return StreamBuffer::get(); };
+            /**
+             *  @param str - raw string
+             *  Separates input string str by newline character and adds each string
+             *  to FIFO buffer stream_buffer.
+             */
+            void add(std::string str);
         };
 
     private:

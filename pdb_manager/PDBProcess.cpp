@@ -98,7 +98,7 @@ namespace pdb
 
     /**
      *  Each thread has to constantly monitor what is going on on read-end pipe.
-     *  For this purposes, this functions is implemented. It mean to continiously checking
+     *  For this purposes, this functions is implemented. It mean to continiously check
      *  read file descriptor waiting for any data to be read.
      */
     void monitor(int fd, std::mutex &file_mut, std::shared_ptr<PDBProcess::StreamBuffer> buffer)
