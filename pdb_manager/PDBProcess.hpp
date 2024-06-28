@@ -12,6 +12,7 @@
 #include <thread>
 #include <memory>
 #include <list>
+#include <atomic>
 
 namespace pdb
 {
@@ -65,6 +66,9 @@ namespace pdb
 
         // Data stream
         std::shared_ptr<StreamBuffer> buffer;
+
+        // Controls when threads should exit
+        std::atomic<bool> thread_exec;
 
         // File names for named pipes
         std::string fd_read_name;

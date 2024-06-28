@@ -12,7 +12,7 @@
 
 namespace pdb 
 {
-    PDBProcess::PDBProcess()
+    PDBProcess::PDBProcess() : thread_exec(false)
     {
         char tmp_read_file[] = "/tmp/pdbpipeXXXXXXX";
         char tmp_write_file[] = "/tmp/pdbpipeXXXXXXX";
@@ -55,6 +55,8 @@ namespace pdb
 
     PDBProcess::~PDBProcess()
     {
+        thread_exec = true;
+
         if(thread.joinable())
             thread.join();
 
@@ -101,13 +103,14 @@ namespace pdb
      *  For this purposes, this functions is implemented. It mean to continiously check
      *  read file descriptor waiting for any data to be read.
      */
-    void monitor(int fd, std::mutex &file_mut, std::shared_ptr<PDBProcess::StreamBuffer> buffer)
+    void monitor(int fd, std::mutex &file_mut, std::atomic<bool> &exit, 
+        std::shared_ptr<PDBProcess::StreamBuffer> buffer)
     {
         struct pollfd fds[1];
         fds[0].fd = fd;
         fds[0].events = POLLIN;
 
-        while(true)
+        while(!exit)
         {
             int ret = poll(fds, 1, 0);
             int result;
@@ -140,7 +143,7 @@ namespace pdb
                 buffer->add(read_str);
             }
 
-            // usleep(1000);
+            usleep(1000);
         }
     }
 
@@ -154,7 +157,7 @@ namespace pdb
         if(fd_write < 0)
             return fd_write;
         
-        thread = std::thread(monitor, fd_read, std::ref(file_mut), buffer);
+        thread = std::thread(monitor, fd_read, std::ref(file_mut), std::ref(thread_exec), buffer);
         return 0;
     }
 
@@ -190,8 +193,8 @@ namespace pdb
                 "PDBProcess::StreamBuffer: Failed to stringify input string. Invalid debugger output!");
         }
 
-        std::lock_guard<std::mutex> lock(mut);
         // Add each string to a stream buffer
+        std::lock_guard<std::mutex> lock(mut);
         do
         {
             stream_buffer.push_back(token);

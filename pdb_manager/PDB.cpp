@@ -20,9 +20,6 @@ int main()
 
     PDBcommand(pdb_instance);
 
-    while(true)
-        fflush(stdout);
-
     pdb_instance.join(100000);
     return 0;
 }

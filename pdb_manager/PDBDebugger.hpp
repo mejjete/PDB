@@ -140,7 +140,7 @@ namespace pdb
             : PDBDebugger(name, opts) {};
         virtual ~LLDBDebugger() {};
         
-        std::string getOptions()    const  { return exec_opts; };
+        std::string getOptions()    const { return exec_opts; };
         std::string getExecutable() const { return exec_name; };
 
         virtual std::vector<std::string> readInput() { return std::vector<std::string>(1, ""); };
