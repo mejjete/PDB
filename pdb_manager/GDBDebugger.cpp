@@ -19,6 +19,9 @@ namespace pdb
             std::string iter = read();
             if(iter == term)
                 break;
+            
+            if(iter.length() == 0)
+                continue;
 
             main_buffer.push_back(iter);
         }
@@ -28,12 +31,11 @@ namespace pdb
 
     void GDBDebugger::checkInput(const std::vector<std::string> &str) const
     {
-        // for(auto &iter : str)
-        // {
-            // printf("%s\n", iter.c_str());
-            // if(iter.find("No debugging symbols found") != std::string::npos)
-                // throw std::runtime_error("PDB: No debugging symbols found");
-        // }
+        for(auto &iter : str)
+        {
+            if(iter.find("No debugging symbols found") != std::string::npos)
+                throw std::runtime_error("PDB: No debugging symbols found");
+        }
     }
 
     std::vector<std::string> GDBDebugger::stringifyInput(std::string input)
@@ -86,7 +88,7 @@ namespace pdb
         } while ((token = strtok(NULL, " ,")));
         delete[] list;
 
-        // GDB usually annotates its output with special characters, following strings removes them
+        // GDB usually annotates its output with special characters, following line of code removes them
 
         // Remove command header from first file
         {
@@ -107,64 +109,62 @@ namespace pdb
 
     std::pair<int, std::string> GDBDebugger::getFunction(std::string func_name)
     {   
-        // if(func_name.length() == 0)
-        //     throw std::runtime_error("PDB: Empty function name");
+        if(func_name.length() == 0)
+            throw std::runtime_error("PDB: Empty function name");
 
-        // std::string command = makeCommand("info func " + func_name);
-        // write(command);
+        std::string command = makeCommand("info func " + func_name);
+        write(command);
 
-        // std::string result = readInput();
-        // checkInput(result);
-        // auto range = stringifyInput(result);
+        auto result = readInput();
+        checkInput(result);
         
-        // // Pointer to a vector position containing function information
-        // size_t func_source = 0;         // Path to a source file containing function 
-        // size_t func_decl = 0;           // Function declaration
+        // Pointer to a vector position containing function information
+        size_t func_source = 0;         // Path to a source file containing function 
+        size_t func_decl = 0;           // Function declaration
 
-        // for(size_t i = 0; i < range.size(); i++)
-        // {
-        //     auto &iter = range[i];
+        for(size_t i = 0; i < result.size(); i++)
+        {
+            auto &iter = result[i];
 
-        //     if(iter == "^done")
-        //     {
-        //         // If string prior to "^done" is as follow, that means no function is found
-        //         auto &prev = range.at(i);
+            if(iter == "^done")
+            {
+                // If string prior to "^done" is as follow, that means no function is found
+                auto &prev = result.at(i);
 
-        //         if(strstr(prev.c_str(), "All functions matching regular expression") != NULL)
-        //             throw std::runtime_error("PDB: No such function is found: " + func_name);
-        //         else 
-        //         {
-        //             func_source = i - 2;
-        //             func_decl = i - 1;
-        //         }
+                if(strstr(prev.c_str(), "All functions matching regular expression") != NULL)
+                    throw std::runtime_error("PDB: No such function is found: " + func_name);
+                else 
+                {
+                    func_source = i - 2;
+                    func_decl = i - 1;
+                }
 
-        //         break;
-        //     }
-        // }
+                break;
+            }
+        }
 
-        // if(func_decl == func_source)
-        //     throw std::runtime_error("PDB: Failed parsing <info func " + func_name + ">");
+        if(func_decl == func_source)
+            throw std::runtime_error("PDB: Failed parsing <info func " + func_name + ">");
 
-        // if(strstr(range[func_source].c_str(), "Non-debugging symbol") != NULL)
-        //     throw std::runtime_error("PDB: Cannot obtain information about non-debugging symbols");
+        if(strstr(result[func_source].c_str(), "Non-debugging symbol") != NULL)
+            throw std::runtime_error("PDB: Cannot obtain information about non-debugging symbols");
 
-        // // Fetch path to source file in which function is located
-        // auto &string_func_source = range[func_source];
-        // std::string function_declaration(string_func_source.begin() + 2, string_func_source.end() - 4);
+        // Fetch path to source file in which function is located
+        auto &string_func_source = result[func_source];
+        std::string function_declaration(string_func_source.begin() + 2, string_func_source.end() - 4);
 
-        // // Fetch line at which function is declared
-        // std::string accum;
-        // auto &string_func_decl = range[func_decl]; 
-        // size_t i = 2;
+        // Fetch line at which function is declared
+        std::string accum;
+        auto &string_func_decl = result[func_decl]; 
+        size_t i = 2;
 
-        // while(isdigit(string_func_decl[i]))
-        // {
-        //     accum += string_func_decl[i];
-        //     i++;
-        // }
+        while(isdigit(string_func_decl[i]))
+        {
+            accum += string_func_decl[i];
+            i++;
+        }
 
-        return std::make_pair(1, "");
-        // return std::make_pair(std::atoi(accum.c_str()), function_declaration);
+        return std::make_pair(std::atoi(accum.c_str()), function_declaration);
     }
 
     void GDBDebugger::endDebug()
