@@ -11,6 +11,7 @@
 #include <mutex>
 #include <thread>
 #include <memory>
+#include <list>
 
 namespace pdb
 {
@@ -23,17 +24,20 @@ namespace pdb
     public:
         
         /**
-         *  
+         *  Container represents a stream from a read-end pipe.
+         *  When content of a file read to internal buffer, it gets 
+         *  stringified.
          */
         class StreamBuffer
         {
         private:
             std::mutex mut;
-            std::stringstream stream;
+            std::list<std::string> stream_buffer;
             size_t stream_size;
 
         public:
             StreamBuffer() : stream_size(0) {};
+            size_t size() const { return stream_size; };
             std::string get();
             void add(std::string);
         };
@@ -75,6 +79,7 @@ namespace pdb
         std::pair<int, int> getPipe() const { return std::make_pair(fd_read, fd_write); };
         int openFIFO();
         int pollRead() const;
+        size_t size() const { return buffer->size(); };
 
     protected:
         // Issues a read from a process read-end pipe
