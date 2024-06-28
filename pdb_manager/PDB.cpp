@@ -20,6 +20,9 @@ int main()
 
     PDBcommand(pdb_instance);
 
+    while(true)
+        fflush(stdout);
+
     pdb_instance.join(100000);
     return 0;
 }
@@ -33,7 +36,6 @@ void PDBcommand(pdb::PDBDebug &pdb_instance)
     for(auto &iter : source_array)
         printf("\033[92m%s\033[0m,", iter.c_str());
     std::cout << std::endl;
-
     std::cout << "---------------------------------------------------------------------------\n";
 
     // Print out information about given function
@@ -44,7 +46,6 @@ void PDBcommand(pdb::PDBDebug &pdb_instance)
     std::cout << "\033[92mLine: " << function.first << "\033[0m" << std::endl;
 
     bool caught = false;
-
     try 
     {
         // Set up a breakpoint
@@ -57,7 +58,6 @@ void PDBcommand(pdb::PDBDebug &pdb_instance)
     }
 
     std::cout << "---------------------------------------------------------------------------\n";
-
     std::cout << "Breakpoint: " << function.second << ":" << 1 << std::endl;
     if(caught == false)
         std::cout << "\033[92mBreakpoint set at: " << function.second << ":" << 1 << "\033[0m\n";

@@ -178,93 +178,92 @@ namespace pdb
 
     void GDBDebugger::setBreakpoint(PDBbr brpoint)
     {
-        // if(brpoint.second.length() == 0)
-        //     throw std::runtime_error("PDB: Error setting breakpoint in unknown file");
+        if(brpoint.second.length() == 0)
+            throw std::runtime_error("PDB: Error setting breakpoint in unknown file");
 
-        // bool br_found = false;
+        bool br_found = false;
 
-        // // Check if we have already set up this breakpoint
-        // for(auto &source_files : breakpoints)
-        // {
-        //     if(source_files.first == brpoint.second)
-        //     {
-        //         auto br = std::ranges::find(source_files.second, brpoint.first);
-        //         if(br != source_files.second.end())
-        //         {
-        //             br_found = true;
-        //             break;
-        //         }
-        //     }
-        // }
+        // Check if we have already set up this breakpoint
+        for(auto &source_files : breakpoints)
+        {
+            if(source_files.first == brpoint.second)
+            {
+                auto br = std::ranges::find(source_files.second, brpoint.first);
+                if(br != source_files.second.end())
+                {
+                    br_found = true;
+                    break;
+                }
+            }
+        }
 
-        // // If breakpoint is already set on given position, return
-        // if(br_found == true)
-        //     return;
+        // If breakpoint is already set on given position, return
+        if(br_found == true)
+            return;
 
-        // // If breakpoint has not been set yet, add it to breakpoint list
-        // std::string command = makeCommand("b " + brpoint.second + ":" + std::to_string(brpoint.first));
-        // write(command);
+        // If breakpoint has not been set yet, add it to breakpoint list
+        std::string command = makeCommand("b " + brpoint.second + ":" + std::to_string(brpoint.first));
+        write(command);
 
-        // std::string result = readInput();
-        // checkInput(result);
-        // auto range = stringifyInput(result);
+        auto result = readInput();
+        checkInput(result);
 
-        // /**
-        //  *  At this moment, we may want to check output from "br" command 
-        //  *  to understand if breakpoint has been set. We have to check second
-        //  *  string if it has substring "No source file" and the line right 
-        //  *  before "^done" on more detailed information if so exist
-        //  */
-        // if(strstr(range[1].c_str(), "No source file") != NULL)
-        // {
-        //     throw std::runtime_error("PDB: Cannot set breakpoint at specified location: " 
-        //         + brpoint.second + ":" + std::to_string(brpoint.first));
-        // }
+        /**
+         *  At this moment, we may want to check output from "br" command 
+         *  to understand if breakpoint has been set. We have to check second
+         *  string if it has substring "No source file" and the line right 
+         *  before "^done" on more detailed information if so exist
+         */
+        if(strstr(result[1].c_str(), "No source file") != NULL)
+        {
+            throw std::runtime_error("PDB: Cannot set breakpoint at specified location: " 
+                + brpoint.second + ":" + std::to_string(brpoint.first));
+        }
 
-        // // Find string that starts with "=breakpoint-created"
-        // auto br_created = std::ranges::find(range, "^done") - 1;
+        // Find string that starts with "=breakpoint-created"
+        auto br_created = std::ranges::find(result, "^done") - 1;
         
-        // // Tokenize string
-        // char *list = new char[br_created->length() + 1];
-        // memcpy(list, br_created->c_str(), br_created->length());
-        // list[br_created->length()] = 0;
+        // Tokenize string
+        char *list = new char[br_created->length() + 1];
+        memcpy(list, br_created->c_str(), br_created->length());
+        list[br_created->length()] = 0;
 
-        // char *token = strtok(list, ",");
+        char *token = strtok(list, ",");
 
-        // do
-        // {
-        //     if(strstr(token, "addr") != NULL)
-        //         break;
-        // } while((token = strtok(NULL, ",")));
+        do
+        {
+            if(strstr(token, "addr") != NULL)
+                break;
+        } while((token = strtok(NULL, ",")));
 
-        // // Thow an exception if we failed to parse command
-        // if(strstr(token, "addr") == NULL)
-        // {
-        //     throw std::runtime_error("PDB: Failed parsing <br " + brpoint.second + ":" 
-        //         + std::to_string(brpoint.first) + ">");
-        // }
+        // Thow an exception if we failed to parse command
+        if(strstr(token, "addr") == NULL)
+        {
+            throw std::runtime_error("PDB: Failed parsing <br " + brpoint.second + ":" 
+                + std::to_string(brpoint.first) + ">");
+        }
 
-        // // If breakpoint has status "PENDING", it means we cannot obtain its information from executable
-        // if(strstr(token, "<PENDING>") != NULL)
-        // {
-        //     throw std::runtime_error("PDB: Cannot set breakpoint at specified location: " 
-        //         + brpoint.second + ":" + std::to_string(brpoint.first));
-        // }
+        // If breakpoint has status "PENDING", it means we cannot obtain its information from executable
+        if(strstr(token, "<PENDING>") != NULL)
+        {
+            throw std::runtime_error("PDB: Cannot set breakpoint at specified location: " 
+                + brpoint.second + ":" + std::to_string(brpoint.first));
+        }
         
-        // // If status contains address, we successfully set up a breakpoint, now add it to list
-        // br_found = false;
+        // If status contains address, we successfully set up a breakpoint, now add it to list
+        br_found = false;
 
-        // for(auto &source_files : breakpoints)
-        // {
-        //     if(source_files.first == brpoint.second)
-        //     {
-        //         source_files.second.push_back(brpoint.first);
-        //         br_found = true;
-        //     }
-        // }
+        for(auto &source_files : breakpoints)
+        {
+            if(source_files.first == brpoint.second)
+            {
+                source_files.second.push_back(brpoint.first);
+                br_found = true;
+            }
+        }
 
-        // // Add it as new pair
-        // if(br_found != true)
-        //     breakpoints.push_back(std::make_pair(brpoint.second, std::vector<int>(1, brpoint.first)));
+        // Add it as new pair
+        if(br_found != true)
+            breakpoints.push_back(std::make_pair(brpoint.second, std::vector<int>(1, brpoint.first)));
     }
 }
