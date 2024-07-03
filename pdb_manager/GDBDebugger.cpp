@@ -4,31 +4,38 @@
 #include <string>
 #include <vector>
 #include <ranges>
+#include <type_traits>
 
 namespace pdb
 {
     std::string GDBDebugger::term = "(gdb) ";
 
-    std::string GDBDebugger::readInput()
+    std::vector<std::string> GDBDebugger::readInput()
     {
-        std::string main_buffer;
+        std::vector<std::string> main_buffer;
 
         while(true)
         {
-            std::string buff = read();
-            main_buffer += buff;
-
-            if(buff.find(term) != std::string::npos)
+            std::string iter = read();
+            if(iter == term)
                 break;
+            
+            if(iter.length() == 0)
+                continue;
+
+            main_buffer.push_back(iter);
         }
 
         return main_buffer;
     }
 
-    void GDBDebugger::checkInput(std::string input) const
+    void GDBDebugger::checkInput(const std::vector<std::string> &str) const
     {
-        if(input.find("No debugging symbols found") != std::string::npos)
-            throw std::runtime_error("PDB: No debugging symbols found");
+        for(auto &iter : str)
+        {
+            if(iter.find("No debugging symbols found") != std::string::npos)
+                throw std::runtime_error("PDB: No debugging symbols found");
+        }
     }
 
     std::vector<std::string> GDBDebugger::stringifyInput(std::string input)
@@ -55,23 +62,21 @@ namespace pdb
         std::string command = makeCommand("info sources");
         write(command);
         
-        std::string result = readInput();
+        auto result = readInput();
         checkInput(result);
 
         // Find first occurence of ^done
-        auto done_expr = result.find("^done");
-        if(done_expr == std::string::npos)
+        auto done_expr = std::ranges::find(result, "^done");
+        if(done_expr == result.end())
             throw std::runtime_error("PDB: Failed parsing <info sources>");
         
-        auto source_end = done_expr - 2;
-        auto source_start = result.rfind("\"", done_expr - 3) + 1;
-
-        std::string source_list(result.begin() + source_start, result.begin() + source_end);
+        // If no errors occured so far, previous string relative to "^done" is list of source files
+        auto source_list = done_expr - 1;
         std::vector<std::string> sources;
 
-        char *list = new char[source_list.length() + 1];
-        memcpy(list, source_list.c_str(), source_list.length());
-        list[source_list.length()] = 0;
+        char *list = new char[source_list->length() + 1];
+        memcpy(list, source_list->c_str(), source_list->length());
+        list[source_list->length()] = 0;
 
         char *token = strtok(list, " ,");
         if(token == NULL)
@@ -83,8 +88,22 @@ namespace pdb
         } while ((token = strtok(NULL, " ,")));
         delete[] list;
 
-        // gdb usually adds 2 additional \n at the end of the last source file
-        sources[sources.size() - 1].resize(sources[sources.size() - 1].length() - 4);
+        // GDB usually annotates its output with special characters, following line of code removes them
+
+        // Remove command header from first file
+        {
+            auto &first_file = sources[0];
+            std::string new_string(first_file.begin() + 2, first_file.end());
+            first_file = new_string;
+        }
+
+        // Remove 2 newline characters from last file
+        {
+            auto &last_file = sources[0];
+            last_file.pop_back();
+            last_file.pop_back();
+        }
+
         return sources;
     }
 
@@ -96,22 +115,21 @@ namespace pdb
         std::string command = makeCommand("info func " + func_name);
         write(command);
 
-        std::string result = readInput();
+        auto result = readInput();
         checkInput(result);
-        auto range = stringifyInput(result);
         
         // Pointer to a vector position containing function information
         size_t func_source = 0;         // Path to a source file containing function 
         size_t func_decl = 0;           // Function declaration
 
-        for(size_t i = 0; i < range.size(); i++)
+        for(size_t i = 0; i < result.size(); i++)
         {
-            auto &iter = range[i];
+            auto &iter = result[i];
 
             if(iter == "^done")
             {
                 // If string prior to "^done" is as follow, that means no function is found
-                auto &prev = range.at(i);
+                auto &prev = result.at(i);
 
                 if(strstr(prev.c_str(), "All functions matching regular expression") != NULL)
                     throw std::runtime_error("PDB: No such function is found: " + func_name);
@@ -128,16 +146,16 @@ namespace pdb
         if(func_decl == func_source)
             throw std::runtime_error("PDB: Failed parsing <info func " + func_name + ">");
 
-        if(strstr(range[func_source].c_str(), "Non-debugging symbol") != NULL)
+        if(strstr(result[func_source].c_str(), "Non-debugging symbol") != NULL)
             throw std::runtime_error("PDB: Cannot obtain information about non-debugging symbols");
 
         // Fetch path to source file in which function is located
-        auto &string_func_source = range[func_source];
+        auto &string_func_source = result[func_source];
         std::string function_declaration(string_func_source.begin() + 2, string_func_source.end() - 4);
 
         // Fetch line at which function is declared
         std::string accum;
-        auto &string_func_decl = range[func_decl]; 
+        auto &string_func_decl = result[func_decl]; 
         size_t i = 2;
 
         while(isdigit(string_func_decl[i]))
@@ -187,9 +205,8 @@ namespace pdb
         std::string command = makeCommand("b " + brpoint.second + ":" + std::to_string(brpoint.first));
         write(command);
 
-        std::string result = readInput();
+        auto result = readInput();
         checkInput(result);
-        auto range = stringifyInput(result);
 
         /**
          *  At this moment, we may want to check output from "br" command 
@@ -197,14 +214,14 @@ namespace pdb
          *  string if it has substring "No source file" and the line right 
          *  before "^done" on more detailed information if so exist
          */
-        if(strstr(range[1].c_str(), "No source file") != NULL)
+        if(strstr(result[1].c_str(), "No source file") != NULL)
         {
             throw std::runtime_error("PDB: Cannot set breakpoint at specified location: " 
                 + brpoint.second + ":" + std::to_string(brpoint.first));
         }
 
         // Find string that starts with "=breakpoint-created"
-        auto br_created = std::ranges::find(range, "^done") - 1;
+        auto br_created = std::ranges::find(result, "^done") - 1;
         
         // Tokenize string
         char *list = new char[br_created->length() + 1];

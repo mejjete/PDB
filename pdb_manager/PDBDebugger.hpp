@@ -26,8 +26,8 @@ namespace pdb
         PDBDebugger(PDBDebugger &&) = default;
         virtual ~PDBDebugger() {};
 
-        virtual std::string readInput() = 0;
-        virtual void checkInput(std::string) const = 0;
+        virtual std::vector<std::string> readInput() = 0;
+        virtual void checkInput(const std::vector<std::string>&) const = 0;
         virtual std::string getOptions() const = 0;
         virtual std::string getExecutable() const = 0;
         virtual PDBbr_list getBreakpointList() = 0;
@@ -109,11 +109,11 @@ namespace pdb
             : PDBDebugger(name, opts + " -q --interpreter=mi2") {};
         virtual ~GDBDebugger() {};
 
-        std::string getOptions() const { return exec_opts; };
+        std::string getOptions()    const { return exec_opts; };
         std::string getExecutable() const { return exec_name; };
  
-        virtual std::string readInput();
-        virtual void checkInput(std::string) const;
+        virtual std::vector<std::string> readInput();
+        virtual void checkInput(const std::vector<std::string>&) const;
 
         virtual void setBreakpoint(PDBbr);
         virtual PDBbr_list getBreakpointList() { return breakpoints; };
@@ -140,11 +140,11 @@ namespace pdb
             : PDBDebugger(name, opts) {};
         virtual ~LLDBDebugger() {};
         
-        std::string getOptions() const { return exec_opts; };
+        std::string getOptions()    const { return exec_opts; };
         std::string getExecutable() const { return exec_name; };
 
-        virtual std::string readInput() { return "NULL"; };
-        virtual void checkInput(std::string) const {};
+        virtual std::vector<std::string> readInput() { return std::vector<std::string>(1, ""); };
+        virtual void checkInput(const std::vector<std::string>&) const {};
 
         virtual void setBreakpoint(PDBbr) {};
         virtual PDBbr_list getBreakpointList() { return breakpoints; };
