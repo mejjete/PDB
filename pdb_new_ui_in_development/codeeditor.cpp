@@ -53,7 +53,6 @@ CodeEditor::CodeEditor(QWidget *parent)
     connect(this, &QPlainTextEdit::updateRequest,
             this, &CodeEditor::updateLineNumberArea);
 
-    // Убрали подсветку текущей строки: не подключаем cursorPositionChanged
     //updateLineNumberAreaWidth(0);
 }
 
