@@ -80,7 +80,7 @@ namespace pdb
     public:
         PDBProcess();
         PDBProcess(const PDBProcess&) = delete;
-        PDBProcess(PDBProcess&&) = default;
+        PDBProcess(PDBProcess&&) = delete;
         ~PDBProcess();
 
         std::pair<std::string, std::string> getPipeNames() const { return std::make_pair(fd_read_name, fd_write_name); };

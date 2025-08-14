@@ -23,7 +23,7 @@ namespace pdb
         PDBDebugger(std::string name, std::string opts) 
             : exec_name(name), exec_opts(opts) {};
         PDBDebugger(const PDBDebugger &) = delete;
-        PDBDebugger(PDBDebugger &&) = default;
+        PDBDebugger(PDBDebugger &&) = delete;
         virtual ~PDBDebugger() {};
 
         virtual std::vector<std::string> readInput() = 0;

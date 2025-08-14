@@ -41,11 +41,12 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         rsc.qrc
         setorremovebreakpointdialog.h setorremovebreakpointdialog.cpp setorremovebreakpointdialog.ui
         highlighter.h highlighter.cpp
-
     )
 endif()
 
 target_compile_options(pdbmanager PRIVATE -Wall -Wextra -Wunused-parameter)
+target_include_directories(pdbmanager PRIVATE pdb_manager pdb_runtime ${CMAKE_SOURCE_DIR})
+target_include_directories(PDB PRIVATE pdb_manager pdb_runtime ${CMAKE_SOURCE_DIR})
 target_link_libraries(PDB PRIVATE Qt${QT_VERSION_MAJOR}::Widgets pdbmanager)
 target_link_libraries(pdb_man PRIVATE pdbmanager)
 
