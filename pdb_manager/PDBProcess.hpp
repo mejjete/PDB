@@ -15,17 +15,17 @@
 
 namespace pdb {
 /**
- *  Process handler that creates connections to spawned processes.
- *  Does not spawn any process by itself.
+ * Process handler that creates connections to spawned processes.
+ * Does not spawn any process by itself.
  */
 class PDBProcess {
 public:
   /**
-   *  Container represents an asynchronous stream from a read-end pipe. Among
+   * Container represents an asynchronous stream from a read-end pipe. Among
    * all, PDBProcess is also responsible for reading and writting commands to
    * communication channels. This class solves this problem.
    *
-   *  It safely fetches input data from channel and provides interface for
+   * It safely fetches input data from channel and provides interface for
    * reading and writting. Also, it stringifies incoming data.
    */
   class StreamBuffer {
@@ -46,9 +46,9 @@ public:
     std::string get();
 
     /**
-     *  @param str - raw string
-     *  Separates input string str by newline character and adds each string
-     *  to FIFO buffer stream_buffer.
+     * @param str - raw string
+     * Separates input string str by newline character and adds each string
+     * to FIFO buffer stream_buffer.
      */
     void add(std::string str);
   };

@@ -82,19 +82,17 @@ int PDBProcess::pollRead() const {
       if (::ioctl(fd_read, FIONREAD, &bytes_available) == -1)
         throw std::system_error(std::error_code(errno, std::generic_category()),
                                 "PDB: error ioctl process handler: ");
-
       ret = bytes_available;
     }
   } else
     throw std::system_error(std::error_code(errno, std::generic_category()),
                             "PDB: poll error: ");
-
   return ret;
 }
 
 /**
- *  Each thread has to constantly monitor what is going on on read-end pipe.
- *  For this purposes, this functions is implemented. It mean to continiously
+ * Each thread has to constantly monitor what is going on on read-end pipe.
+ * For this purposes, this functions is implemented. It mean to continiously
  * check read file descriptor waiting for any data to be read.
  */
 void monitor(int fd, std::mutex &file_mut, std::atomic<bool> &exit,
@@ -105,7 +103,7 @@ void monitor(int fd, std::mutex &file_mut, std::atomic<bool> &exit,
 
   while (!exit) {
     int ret = poll(fds, 1, 0);
-    int result;
+    int result = 0;
 
     if (ret > 0) {
       if (fds[0].revents & POLLIN) {
@@ -116,8 +114,7 @@ void monitor(int fd, std::mutex &file_mut, std::atomic<bool> &exit,
 
         result = bytes_available;
       }
-    } else
-      result = 0;
+    }
 
     // Read whatever we have on descriptor fd to shared buffer
     if (result > 0) {

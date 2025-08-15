@@ -199,10 +199,10 @@ void GDBDebugger::setBreakpoint(PDBbr brpoint) {
   checkInput(result);
 
   /**
-   *  At this moment, we may want to check output from "br" command
-   *  to understand if breakpoint has been set. We have to check second
-   *  string if it has substring "No source file" and the line right
-   *  before "^done" on more detailed information if so exist
+   * At this moment, we may want to check output from "br" command
+   * to understand if breakpoint has been set. We have to check second
+   * string if it has substring "No source file" and the line right
+   * before "^done" on more detailed information if so exist
    */
   if (strstr(result[1].c_str(), "No source file") != NULL) {
     throw std::runtime_error(
