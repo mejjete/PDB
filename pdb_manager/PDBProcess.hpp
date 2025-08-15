@@ -1,99 +1,100 @@
-#pragma once 
+#pragma once
 
-#include <string>
-#include <utility>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <atomic>
+#include <list>
+#include <memory>
+#include <mutex>
+#include <sstream>
 #include <string>
 #include <sys/ioctl.h>
-#include <unistd.h>
-#include <sstream>
-#include <mutex>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <thread>
-#include <memory>
-#include <list>
-#include <atomic>
+#include <unistd.h>
+#include <utility>
 
-namespace pdb
-{
+namespace pdb {
+/**
+ *  Process handler that creates connections to spawned processes.
+ *  Does not spawn any process by itself.
+ */
+class PDBProcess {
+public:
+  /**
+   *  Container represents an asynchronous stream from a read-end pipe. Among
+   * all, PDBProcess is also responsible for reading and writting commands to
+   * communication channels. This class solves this problem.
+   *
+   *  It safely fetches input data from channel and provides interface for
+   * reading and writting. Also, it stringifies incoming data.
+   */
+  class StreamBuffer {
+  private:
+    std::mutex mut;
+
+    // First-in first-out buffer
+    std::list<std::string> stream_buffer;
+
+  public:
+    StreamBuffer() {};
+
+    // Number of lines ready to be fetched with get() method
+    size_t size() const { return stream_buffer.size(); };
+
+    // Returns 1 string per 1 call. If no string is available to read, returns
+    // ""
+    std::string get();
+
     /**
-     *  Process handler that creates connections to spawned processes.
-     *  Does not spawn any process by itself.
-    */
-    class PDBProcess
-    {
-    public:
-        
-        /**
-         *  Container represents an asynchronous stream from a read-end pipe. Among all, 
-         *  PDBProcess is also responsible for reading and writting commands to communication 
-         *  channels. This class solves this problem.
-         *  
-         *  It safely fetches input data from channel and provides interface for reading and writting.
-         *  Also, it stringifies incoming data.
-         */
-        class StreamBuffer
-        {
-        private:
-            std::mutex mut;
+     *  @param str - raw string
+     *  Separates input string str by newline character and adds each string
+     *  to FIFO buffer stream_buffer.
+     */
+    void add(std::string str);
+  };
 
-            // First-in first-out buffer 
-            std::list<std::string> stream_buffer;
+private:
+  int fd_read;
+  int fd_write;
 
-        public:
-            StreamBuffer() {};
+  // Protects read-end and write-end pipes
+  std::mutex file_mut;
 
-            // Number of lines ready to be fetched with get() method
-            size_t size() const { return stream_buffer.size(); };
-            
-            // Returns 1 string per 1 call. If no string is available to read, returns ""
-            std::string get();
+  // Data stream
+  std::shared_ptr<StreamBuffer> buffer;
 
-            /**
-             *  @param str - raw string
-             *  Separates input string str by newline character and adds each string
-             *  to FIFO buffer stream_buffer.
-             */
-            void add(std::string str);
-        };
+  // Controls when threads should exit
+  std::atomic<bool> thread_exec;
 
-    private:
-        int fd_read;
-        int fd_write;
+  // File names for named pipes
+  std::string fd_read_name;
+  std::string fd_write_name;
 
-        // Protects read-end and write-end pipes
-        std::mutex file_mut;
+  // Thread that constantly polls read-end pipe to check if it has something to
+  // read
+  std::thread thread;
 
-        // Data stream
-        std::shared_ptr<StreamBuffer> buffer;
+public:
+  PDBProcess();
+  PDBProcess(const PDBProcess &) = delete;
+  PDBProcess(PDBProcess &&) = delete;
+  ~PDBProcess();
 
-        // Controls when threads should exit
-        std::atomic<bool> thread_exec;
+  std::pair<std::string, std::string> getPipeNames() const {
+    return std::make_pair(fd_read_name, fd_write_name);
+  };
+  std::pair<int, int> getPipe() const {
+    return std::make_pair(fd_read, fd_write);
+  };
+  int openFIFO();
+  int pollRead() const;
+  size_t size() const { return buffer->size(); };
 
-        // File names for named pipes
-        std::string fd_read_name;
-        std::string fd_write_name;
+protected:
+  // Issues a read from a process read-end pipe
+  std::string read();
 
-        // Thread that constantly polls read-end pipe to check if it has something to read
-        std::thread thread;
-
-    public:
-        PDBProcess();
-        PDBProcess(const PDBProcess&) = delete;
-        PDBProcess(PDBProcess&&) = delete;
-        ~PDBProcess();
-
-        std::pair<std::string, std::string> getPipeNames() const { return std::make_pair(fd_read_name, fd_write_name); };
-        std::pair<int, int> getPipe() const { return std::make_pair(fd_read, fd_write); };
-        int openFIFO();
-        int pollRead() const;
-        size_t size() const { return buffer->size(); };
-
-    protected:
-        // Issues a read from a process read-end pipe
-        std::string read();
-
-        // Issues a write to a process write-end pipe
-        void write(std::string);
-    };
-}
+  // Issues a write to a process write-end pipe
+  void write(std::string);
+};
+} // namespace pdb
