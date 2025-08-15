@@ -31,9 +31,9 @@ namespace pdb
     std::unique_ptr<PDBDebugger> createDebugger(PDB_Debug_type type, Args... args)
     {
         if(type == PDB_Debug_type::GDB)
-            return std::unique_ptr<PDBDebugger>(new GDBDebugger(args...));
+            return std::unique_ptr<PDBDebugger>(new GDBDebugger(std::forward<Args>(args)...));
         else if(type == PDB_Debug_type::LLDB)
-            return std::unique_ptr<PDBDebugger>(new LLDBDebugger(args...));
+            return std::unique_ptr<PDBDebugger>(new LLDBDebugger(std::forward<Args>(args)...));
             
         throw std::runtime_error("PDB does not support specified debugger");
     }
@@ -112,7 +112,7 @@ namespace pdb
         std::vector<std::string> pdb_debugger_parced;
 
         // Temporary object
-        auto debug = createDebugger(type, dargs...);
+        auto debug = createDebugger(type, std::forward<DebuggerArgs>(dargs)...);
 
         // Tokenize command-line arguments
         pdb_args_parced = this->parseArgs(args, " ;\n\r");
@@ -161,7 +161,7 @@ namespace pdb
         
         for(int i = 0; i < proc_count; i++)
         {
-            pdb_proc.emplace_back(createDebugger(type, dargs...));
+            pdb_proc.emplace_back(createDebugger(type, std::forward<DebuggerArgs>(dargs)...));
             auto proc_filenames = pdb_proc[i]->getPipeNames();
 
             // Memorize pipe names
