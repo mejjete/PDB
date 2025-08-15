@@ -14,6 +14,33 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+find_package(Doxygen COMPONENTS doxygen)
+
+if(DOXYGEN_FOUND)
+    set(DOXYGEN_INPUT_DIRS
+        "${CMAKE_CURRENT_SOURCE_DIR}/pdb_manager"
+        "${CMAKE_CURRENT_SOURCE_DIR}/pdb_runtime"
+    )
+    
+    set(DOXYGEN_OUTPUT_DIR ${CMAKE_BINARY_DIR}/docs)
+    set(DOXYGEN_GENERATE_HTML YES)
+    set(DOXYGEN_GENERATE_MAN YES)
+    set(DOXYGEN_OUTPUT_DIRECTORY ${DOXYGEN_OUTPUT_DIR})
+    set(DOXYGEN_RECURSIVE YES)
+    set(DOXYGEN_EXTRACT_ALL YES)
+    set(DOXYGEN_GENERATE_LATEX NO)
+    set(DOXYGEN_USE_MDFILE_AS_MAINPAGE ${CMAKE_CURRENT_SOURCE_DIR}/README.md)
+
+    doxygen_add_docs(
+        docs
+        ${DOXYGEN_INPUT_DIRS}
+        COMMENT "Generate documentation with Doxygen"
+    )
+
+    message(STATUS "Doxygen documentation will be generated in: ${DOXYGEN_OUTPUT_DIR}")
+else()
+    message(WARNING "Doxygen not found, documentation will not be generated.")
+endif()
 
 set(PROJECT_SOURCES
         main.cpp

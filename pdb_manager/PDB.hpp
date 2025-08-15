@@ -71,11 +71,11 @@ public:
   /**
    *  @param usec - milisecond to wait for processes termination
    *
-   *  Must be called to properly terminate calling process. Returns pair of
+   * Must be called to properly terminate calling process. Returns pair of
    * values describing main process exit status. .first - holds 1 if child has
    * terminated and 0 otherwise .second - holds exit code of a child
    *
-   *  Because this function uses wait() in a non-blocking mode, it can be used
+   * Because this function uses wait() in a non-blocking mode, it can be used
    * by high-level routines to wait until process termination or just kill it by
    * calling destructor
    */
@@ -84,17 +84,15 @@ public:
 };
 
 /**
- *  Opens a connection to a spawned processes via PDBRuntime.
- *
- *  @param start_routine - should specify the compiler instance and
+ * @param start_routine - should specify the compiler instance and
  * target-specific flags [example] : "mpirun -oversubscribe -np 4"
  *
- *  @param exec - should specify the executable
- *  @param args - should contain a list of arguments to be passed to executable
- *  @param type - external debugger type, should be member of PDB_Debug_type
- *  @param dargs - arguments to be passed to an external debugger
+ * @param exec - should specify the executable
+ * @param args - should contain a list of arguments to be passed to executable
+ * @param type - external debugger type, should be member of PDB_Debug_type
+ * @param dargs - arguments to be passed to an external debugger
  *
- *  PDBDebug("mpirun -np 4 -oversubscribe", "./mpi_test.out", "arg1, arg2,
+ * PDBDebug("mpirun -np 4 -oversubscribe", "./mpi_test.out", "arg1, arg2,
  * arg3", PDB_Debug_type::GDB, [following arguments being passed to a specified
  * debugger type during construction]);
  */
@@ -248,9 +246,9 @@ void PDBDebug::launch(std::string start_rountine, std::string exec,
   delete[] new_argv;
 
   /**
-   *  At this point, child process which is now PDB launch will try to open FIFO
-   *  and block because FIFO is blocked until it is dual-opened.
-   *  The following open() calls should be synchronized with the same open() in
+   * At this point, child process which is now PDB launch will try to open FIFO
+   * and block because FIFO is blocked until it is dual-opened.
+   * The following open() calls should be synchronized with the same open() in
    * a child.
    */
   for (auto &proc : pdb_proc) {

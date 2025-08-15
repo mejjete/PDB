@@ -31,53 +31,39 @@ public:
   virtual PDBbr_list getBreakpointList() = 0;
 
   /**
-   *  @param args - additional arguments being passed to a debugger during
+   * @brief Starts the execution of a debugger just by commiting "run"
+   * @param args - additional arguments being passed to a debugger during
    * runtime
-   *
-   *  Starts the execution of a debugger just by commiting "run"
-   *  On error, throws std::runtime_error
+   * @return On error, throws std::runtime_error
    */
   virtual void startDebug(std::string args) = 0;
 
-  /**
-   *  Ends debugging session just by commiting "quit"
-   */
   virtual void endDebug() = 0;
 
   /**
-   *  On success, returns std::string containing full path to a source file.
-   *  On error, throws std::runtime_error
-   *
-   *  Depending on the active context in a debugger, getSource() should return
-   * the full path to a source file that is being debugged right now.
-   *
-   *  Should only be called during active debugging process (after startDebug()
+   * @brief Depending on the active context in a debugger, getSource() should
+   * return the full path to a source file that is being debugged right now.
+   * Should only be called during active debugging process (after startDebug()
    * call)
+   * @return On success, returns std::string containing full path to a source
+   * file. On error, throws std::runtime_error
    */
   virtual std::string getSource() = 0;
 
   /**
-   *  On success, returns vector of strings, each containing full path
+   *  @return On success, returns vector of strings, each containing full path
    *  to every source file recorded in executable.
-   *
    *  On error, throws std::runtime_error
    */
   virtual std::vector<std::string> getSourceFiles() = 0;
 
   /**
    *  @param func_name - name of the function in question
-   *
-   *  On success, returns pair describing function information
+   *  @return On success, returns pair describing function information
    *  first - location of a function in a source file (line)
    *  second - full path of a source file of a given function
    */
   virtual std::pair<int, std::string> getFunction(std::string func_name) = 0;
-
-  /**
-   *  @param brpoint - breakpoint to be set
-   *
-   *  Sets breakpoint in executable described by PDBbr object.
-   */
   virtual void setBreakpoint(PDBbr brpoint) = 0;
 };
 
