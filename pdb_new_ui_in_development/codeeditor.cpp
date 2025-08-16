@@ -84,9 +84,9 @@ void CodeEditor::lineNumberAreaPaintEvent(QPaintEvent *event)
             // Arrow of the current line - also by midY
             if (blockNumber == execLine) {
                 const QPoint pts[3] = {
-                    QPoint(2, midY - 6),
-                    QPoint(2, midY + 6),
-                    QPoint(16,  midY)
+                    QPoint(w - 18, midY - 6),
+                    QPoint(w - 18, midY + 6),
+                    QPoint(w - 2,  midY)
                 };
                 painter.setBrush(QColor(38, 139, 210));
                 painter.setPen(Qt::NoPen);
