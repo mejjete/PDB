@@ -128,6 +128,8 @@ void CodeEditor::loadSample(const QString &text)
     execLine = -1;
     breakpoints.clear();
     lineNumberArea->update();
+    emit debugStateChanged(false); // notify buttons
+    emit breakpointsChanged(0);    // reset (just in case)
 }
 
 void CodeEditor::startDebug()
@@ -146,6 +148,7 @@ void CodeEditor::startDebug()
         if (first < 0)
             return; // Just in case.
         execLine = qBound(0, first, blockCount() - 1);
+        emit debugStateChanged(true); // debug session started
     } else {
         // Continue: Move to the next breakpoint below the current line.
         int nextStop = -1;
@@ -181,6 +184,7 @@ void CodeEditor::stopDebug()
         execLine = -1;                 // Arrow is hidden.
         lineNumberArea->update();      // Redraw gutter.
         update();                      // Redraw viewport.
+        emit debugStateChanged(false);
     }
 }
 
@@ -208,6 +212,7 @@ void CodeEditor::toggleBreakpointAtGutterY(int localY)
                 breakpoints.remove(ln);
             else
                 breakpoints.insert(ln);
+            emit breakpointsChanged(breakpoints.size());
             break;
         }
         block = block.next();

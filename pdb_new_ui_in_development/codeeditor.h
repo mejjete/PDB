@@ -19,6 +19,10 @@ public:
     QSet<int> breakpoints; // 0-based
     int execLine = -1;     // -1 = not running
 
+signals:
+    void debugStateChanged(bool running); // True at the start of a "session", false when stopped
+    void breakpointsChanged(int count);   // Whenever a set of breakpoints changes
+
 public slots:
     void loadSample(const QString &text);
     void startDebug();

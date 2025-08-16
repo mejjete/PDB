@@ -34,6 +34,29 @@ int main(int argc, char** argv) {
     QObject::connect(stepBtn,  &QPushButton::clicked, editor, &CodeEditor::step);
     QObject::connect(stopBtn,  &QPushButton::clicked, editor, &CodeEditor::stopDebug);
 
+    bool running = false;
+    int bpCount  = 0;
+
+    auto updateStartText = [&](){
+      startBtn->setText( (running && bpCount > 1) ? "Continue" : "Start Debugging" );
+    };
+
+    QObject::connect(editor, &CodeEditor::debugStateChanged,
+                     [&](bool isRunning){ running = isRunning; updateStartText(); });
+    QObject::connect(editor, &CodeEditor::breakpointsChanged,
+                     [&](int count){ bpCount = count; updateStartText(); });
+
+    // TODO: find a better way to do that.
+    // ------------------------------------------------------------
+    stepBtn->setEnabled(false);
+    stopBtn->setEnabled(false);
+    QObject::connect(editor, &CodeEditor::debugStateChanged,
+        [&](bool isRunning) {
+            stepBtn->setEnabled(isRunning);
+            stopBtn->setEnabled(isRunning);
+    });
+    // ------------------------------------------------------------
+
     QWidget window;
     auto* layout = new QVBoxLayout(&window);
     layout->addWidget(editor, 1);
