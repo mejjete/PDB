@@ -15,7 +15,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
-#include <wait.h>
+#include <sys/wait.h>
 
 namespace pdb {
 #define PDB_PIPE_LENGTH 20

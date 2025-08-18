@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.16)
 
 project(PDB VERSION 0.1 LANGUAGES CXX)
 
@@ -21,7 +21,7 @@ if(DOXYGEN_FOUND)
         "${CMAKE_CURRENT_SOURCE_DIR}/pdb_manager"
         "${CMAKE_CURRENT_SOURCE_DIR}/pdb_runtime"
     )
-    
+
     set(DOXYGEN_OUTPUT_DIR ${CMAKE_BINARY_DIR}/docs)
     set(DOXYGEN_GENERATE_HTML YES)
     set(DOXYGEN_GENERATE_MAN YES)
@@ -44,9 +44,8 @@ endif()
 
 set(PROJECT_SOURCES
         main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
+        codeeditor.cpp
+        codeeditor.h
 )
 
 add_library(pdbmanager
@@ -59,15 +58,15 @@ add_executable(pdb_launch
         pdb_manager/PDBLaunch.cpp)
 
 add_executable(pdb_man
-	pdb_manager/PDB.cpp)
+        pdb_manager/PDB.cpp)
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(PDB
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        rsc.qrc
-        setorremovebreakpointdialog.h setorremovebreakpointdialog.cpp setorremovebreakpointdialog.ui
-        highlighter.h highlighter.cpp
+        mainwindow.h mainwindow.cpp
+        resources.qrc
+
     )
 endif()
 
@@ -81,7 +80,7 @@ target_link_libraries(pdb_man PRIVATE pdbmanager)
 # If you are developing for iOS or macOS you should consider setting an
 # explicit, fixed bundle identifier manually though.
 if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.PDB)
+  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.pdb_ui_beta)
 endif()
 set_target_properties(PDB PROPERTIES
     ${BUNDLE_ID_OPTION}

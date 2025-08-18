@@ -2,42 +2,29 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "setorremovebreakpointdialog.h"
-#include "highlighter.h"
-#include "pdb_manager/PDB.hpp"
 
-QT_BEGIN_NAMESPACE
-namespace Ui {
-class MainWindow;
-class QString;
-class QColor;
-}
-QT_END_NAMESPACE
+class CodeEditor;
+class QAction;
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-
 public:
-    MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    explicit MainWindow(QWidget *parent = nullptr);
 
 private slots:
-    void on_actionOpen_triggered();
-    void on_actionSet_or_Remove_Breakpoint_triggered();
+    void updateStartText();
 
-    void setOrRemoveBreakpoint(int lineNumber);
+signals:
 
 private:
-    Ui::MainWindow *ui;
-    SetOrRemoveBreakpointDialog* m_breakpointCfgDialog;
-    bool m_isBreakpointSet;
-    Highlighter* m_highlighter;
-    pdb::PDBDebug m_pdbInstance;
+    CodeEditor  *m_editor;
+    QAction *m_startAct;
+    QAction *m_stepAct;
+    QAction *m_stopAct;
 
-    void initUI();
-
-    // Helper method.
-    void loadTextFile(const QString& filePath, int position);
+    bool m_running;
+    int m_bpCount;
 };
+
 #endif // MAINWINDOW_H
