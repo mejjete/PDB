@@ -16,13 +16,16 @@ set(PROJECT_SOURCES
         main.cpp
         codeeditor.cpp
         codeeditor.h
-        codeeditor.ui
+
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(pdb_ui_beta
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        mainwindow.h mainwindow.cpp
+        resources.qrc
+
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET pdb_ui_beta APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
