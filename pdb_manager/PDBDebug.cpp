@@ -3,6 +3,7 @@
 #include <system_error>
 #include <unistd.h>
 #include <vector>
+#include <signal.h>
 
 namespace pdb {
 PDBDebug::~PDBDebug() {

@@ -1,108 +1,74 @@
 #include "mainwindow.h"
-#include "./ui_mainwindow.h"
-#include <QString>
-#include <QFileDialog>
-#include <QDir>
-#include <QFile>
-#include <QTextStream>
-#include <QColor>
-#include <QScrollBar>
-#include <QDebug>
+#include "codeeditor.h"
+#include <QAction>
+#include <QToolBar>
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
-    , m_breakpointCfgDialog(nullptr)
-    , m_isBreakpointSet(false)
-    , m_highlighter(nullptr)
+    : QMainWindow{parent},
+    m_editor(nullptr),
+    m_startAct(nullptr),
+    m_stepAct(nullptr),
+    m_stopAct(nullptr)
 {
-    ui->setupUi(this);
+    m_editor = new CodeEditor(parent);
 
-    initUI();
-}
-
-MainWindow::~MainWindow()
-{
-    delete ui;
-}
-
-void MainWindow::initUI()
-{
-    setWindowTitle("PDB");
-
-    ui->textEdit->setReadOnly(true);
-    m_highlighter = new Highlighter(ui->textEdit->document());
-
-    ui->tabWidget->setTabText(0, "Output");
-}
-
-void MainWindow::loadTextFile(const QString &filePath, int position)
-{
-    QFile file(filePath);
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&file);
-        QString fileContent;
-        while (!in.atEnd())
-            fileContent = in.readAll();
-        ui->textEdit->setPlainText(fileContent);
-        file.close();
-
-        auto cursor = ui->textEdit->textCursor();
-        cursor.movePosition(QTextCursor::Start);
-        cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, position);
-        ui->textEdit->setTextCursor(cursor);
-
-        QScrollBar* vScrollBar = ui->textEdit->verticalScrollBar();
-        int lineHeight = ui->textEdit->fontMetrics().lineSpacing();
-        int scrollValue = (position - 1) * lineHeight;
-        vScrollBar->setValue(scrollValue);
-
-        qDebug() << ui->textEdit->height();
-    } else {
-        // TODO: Handler the error.
-        QString errMessage = "Failed to open the file " + filePath;
-        qDebug() << errMessage;
-        exit(EXIT_FAILURE);
+    QStringList lines;
+    lines << "#include <iostream>"
+          << "using namespace std;"
+          << ""
+          << "int square(int x) { return x * x; }"
+          << ""
+          << "int main() {"
+          << "    cout << \"Demo start\" << endl;";
+    for (int i = 0; i < 150; ++i) {
+        lines << QString("    cout << \"line %1 => square(%1)=\" << square(%1) << endl;").arg(i);
     }
+    lines << "    cout << \"Demo end\" << endl;"
+          << "    return 0;"
+          << "}";
+    m_editor->loadSample(lines.join('\n'));
+
+    setCentralWidget(m_editor);
+
+    m_startAct = new QAction("Start Debugging");
+    m_startAct->setIcon(QIcon(":/images/start.png"));
+    m_stepAct  = new QAction("Step Over");
+    m_stepAct->setIcon(QIcon(":/images/step_over.png"));
+    m_stopAct  = new QAction("Stop Debugging");
+    m_stopAct->setIcon(QIcon(":/images/stop.png"));
+
+    QObject::connect(m_startAct, &QAction::triggered, m_editor, &CodeEditor::startDebug);
+    QObject::connect(m_stepAct,  &QAction::triggered, m_editor, &CodeEditor::step);
+    QObject::connect(m_stopAct,  &QAction::triggered, m_editor, &CodeEditor::stopDebug);
+
+    m_running = false;
+    m_bpCount = 0;
+
+    QObject::connect(m_editor, &CodeEditor::debugStateChanged,
+                     [this](bool isRunning){ m_running = isRunning; updateStartText(); });
+    QObject::connect(m_editor, &CodeEditor::breakpointsChanged,
+                     [this](int count){ m_bpCount = count; updateStartText(); });
+
+    // TODO: find a better way to do that.
+    // ------------------------------------------------------------
+    m_stepAct->setEnabled(false);
+    m_stopAct->setEnabled(false);
+    QObject::connect(m_editor, &CodeEditor::debugStateChanged,
+                     [this](bool isRunning) {
+                         m_stepAct->setEnabled(isRunning);
+                         m_stopAct->setEnabled(isRunning);
+                     });
+    // ------------------------------------------------------------
+
+    auto toolbar = addToolBar("Debug Toolbar");
+    toolbar->addAction(m_startAct);
+    toolbar->addAction(m_stepAct);
+    toolbar->addAction(m_stopAct);
+    toolbar->setIconSize(QSize(16, 16));
 }
 
-void MainWindow::on_actionOpen_triggered()
+void MainWindow::updateStartText()
 {
-    QFileDialog* dialog = new QFileDialog(this, "Open File",
-        QDir::homePath());
-
-    dialog->setModal(false);
-
-    connect(dialog, &QFileDialog::fileSelected, this, [this](const QString &fileName) {
-        qDebug() << fileName;
-        m_pdbInstance.launch("mpirun -np 4", fileName.toStdString(), "arg1 arg2 arg3",
-                             pdb::PDB_Debug_type::GDB);
-        auto pair = m_pdbInstance.getFunction("main");
-        qDebug() << pair;
-        loadTextFile(QString::fromStdString(pair.second), pair.first);
-    });
-
-    dialog->show();
-}
-
-void MainWindow::on_actionSet_or_Remove_Breakpoint_triggered()
-{
-    if (ui->textEdit->toPlainText() != QString()) {
-        m_breakpointCfgDialog = new SetOrRemoveBreakpointDialog(this);
-        connect(m_breakpointCfgDialog, &SetOrRemoveBreakpointDialog::lineNumber,
-                this, &MainWindow::setOrRemoveBreakpoint);
-        m_breakpointCfgDialog->exec();
-    }
-}
-
-void MainWindow::setOrRemoveBreakpoint(int lineNumber)
-{
-    if (!m_isBreakpointSet) {
-        qDebug() << "Breakpoint at line " << lineNumber << "is set.";
-        m_isBreakpointSet = true;
-    } else {
-        qDebug() << "Breakpoint at line " << lineNumber << "is removed.";
-        m_isBreakpointSet = false;
-    }
+    m_startAct->setText( (m_running && m_bpCount > 1) ? "Continue" : "Start Debugging" );
 }
 
