@@ -15,7 +15,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <vector>
-#include <sys/wait.h>
 
 namespace pdb {
 #define PDB_PIPE_LENGTH 20
@@ -166,9 +165,9 @@ void PDBDebug::launch(std::string start_rountine, std::string exec,
   }
 
   /**
-   *  Modify command-line argument string and add extra arguments
+   * Modify command-line argument string and add extra arguments
    *
-   *  To spawn any process, execvp is used. It accepts char[] as an argument
+   * To spawn any process, execvp is used. It accepts char[] as an argument
    * vector. The following code adds a few extra arguments. This behavior is
    * implementation-defined and must synchronize in the receving process
    */
@@ -231,6 +230,10 @@ void PDBDebug::launch(std::string start_rountine, std::string exec,
   // Spawn process
   exec_pid = fork();
   if (exec_pid == 0) {
+    close(STDOUT_FILENO);
+    close(STDIN_FILENO);
+    close(STDERR_FILENO);
+
     std::string first_exec = pdb_routine_parced[0];
     first_exec.push_back(0);
 
