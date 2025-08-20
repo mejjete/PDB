@@ -1,9 +1,20 @@
 /**
  *  Auxiliary helper which set up the PDB runtime for each process
  */
-#include "PDB.hpp"
 #include <cstdio>
+#include <fcntl.h>
+#include <stdexcept>
+#include <string>
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <system_error>
 #include <unistd.h>
+#include <utility>
+#include <vector>
+
+#define PDB_PIPE_LENGTH 20
 
 std::pair<std::string, std::string> readPipeNames(const char *temp_file,
                                                   int proc_num) {

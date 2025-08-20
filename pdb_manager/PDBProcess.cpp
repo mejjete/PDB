@@ -1,4 +1,4 @@
-#include "PDBProcess.hpp"
+#include <PDBProcess.hpp>
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
@@ -17,13 +17,11 @@ PDBProcess::PDBProcess() : thread_exec(false) {
 
   fd_read = ::mkstemp(tmp_read_file);
   if (fd_read < 0)
-    throw std::system_error(std::error_code(errno, std::generic_category()),
-                            "Error opening read pipe: ");
+    std::terminate();
 
   fd_write = ::mkstemp(tmp_write_file);
   if (fd_write < 0)
-    throw std::system_error(std::error_code(errno, std::generic_category()),
-                            "Error opening write pipe: ");
+    std::terminate();
 
   ::close(fd_read);
   ::close(fd_write);
@@ -32,19 +30,17 @@ PDBProcess::PDBProcess() : thread_exec(false) {
   ::unlink(tmp_write_file);
 
   if (::mkfifo(tmp_read_file, 0666) < 0)
-    throw std::system_error(std::error_code(errno, std::generic_category()),
-                            "Error opening input fifo: ");
+    std::terminate();
 
   if (::mkfifo(tmp_write_file, 0666) < 0)
-    throw std::system_error(std::error_code(errno, std::generic_category()),
-                            "Error opening output fifo: ");
+    std::terminate();
 
   // Set them to NULL and open lately, we don't want to block here upon call to
   // open()
   fd_read = fd_write = 0;
 
   if ((fd_read < 0) | (fd_write < 0))
-    throw std::runtime_error("Can't open named pipes");
+    std::terminate();
 
   fd_read_name = tmp_read_file;
   fd_write_name = tmp_write_file;
@@ -80,13 +76,11 @@ int PDBProcess::pollRead() const {
     if (fds[0].revents & POLLIN) {
       int bytes_available;
       if (::ioctl(fd_read, FIONREAD, &bytes_available) == -1)
-        throw std::system_error(std::error_code(errno, std::generic_category()),
-                                "PDB: error ioctl process handler: ");
+        std::terminate();
       ret = bytes_available;
     }
   } else
-    throw std::system_error(std::error_code(errno, std::generic_category()),
-                            "PDB: poll error: ");
+    std::terminate();
   return ret;
 }
 
@@ -109,8 +103,7 @@ void monitor(int fd, std::mutex &file_mut, std::atomic<bool> &exit,
       if (fds[0].revents & POLLIN) {
         int bytes_available;
         if (ioctl(fd, FIONREAD, &bytes_available) < 0)
-          throw std::system_error(
-              std::error_code(errno, std::generic_category()), "ioctl error");
+          std::terminate();
 
         result = bytes_available;
       }
@@ -121,8 +114,7 @@ void monitor(int fd, std::mutex &file_mut, std::atomic<bool> &exit,
       std::lock_guard<std::mutex> lock(file_mut);
       std::vector<char> to_read(result);
       if (::read(fd, to_read.data(), result) < 0)
-        throw std::system_error(std::error_code(errno, std::generic_category()),
-                                "PDB: error reading pipe");
+        std::terminate();
 
       std::string read_str(to_read.begin(), to_read.end());
       buffer->add(read_str);
@@ -151,8 +143,7 @@ void PDBProcess::write(std::string msg) {
     return;
 
   if (::write(fd_write, msg.c_str(), msg.length()) < 0)
-    throw std::system_error(std::error_code(errno, std::generic_category()),
-                            "PDB: error writting to pipe");
+    std::terminate();
 }
 
 std::string PDBProcess::read() { return buffer->get(); }
@@ -168,9 +159,7 @@ void PDBProcess::StreamBuffer::add(std::string str) {
   // Separate input string by a newline
   char *token = strtok(new_str, "\n");
   if (token == NULL) {
-    throw std::system_error(std::error_code(errno, std::generic_category()),
-                            "PDBProcess::StreamBuffer: Failed to stringify "
-                            "input string. Invalid debugger output!");
+    std::terminate();
   }
 
   // Add each string to a stream buffer

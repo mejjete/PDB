@@ -1,7 +1,6 @@
-#include "PDBDebugger.hpp"
+#include <PDBDebugger.hpp>
 #include <algorithm>
 #include <cstring>
-#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -23,15 +22,16 @@ std::vector<std::string> GDBDebugger::readInput() {
 
     main_buffer.push_back(iter);
   }
-
   return main_buffer;
 }
 
-void GDBDebugger::checkInput(const std::vector<std::string> &str) const {
+boost::leaf::result<void>
+GDBDebugger::checkInput(const std::vector<std::string> &str) const {
   for (auto &iter : str) {
     if (iter.find("No debugging symbols found") != std::string::npos)
-      throw std::runtime_error("PDB: No debugging symbols found");
+      return boost::leaf::new_error<std::string>("No debugging symbols found");
   }
+  return {};
 }
 
 std::vector<std::string> GDBDebugger::stringifyInput(std::string input) {
@@ -51,128 +51,19 @@ std::vector<std::string> GDBDebugger::stringifyInput(std::string input) {
   return string_array;
 }
 
-std::vector<std::string> GDBDebugger::getSourceFiles() {
-  std::string command = makeCommand("info sources");
-  write(command);
-
-  auto result = readInput();
-  checkInput(result);
-
-  // Find first occurence of ^done
-  auto done_expr = std::find(result.begin(), result.end(), "^done");
-  if (done_expr == result.end())
-    throw std::runtime_error("PDB: Failed parsing <info sources>");
-
-  // If no errors occured so far, previous string relative to "^done" is list of
-  // source files
-  auto source_list = done_expr - 1;
-  std::vector<std::string> sources;
-
-  char *list = new char[source_list->length() + 1];
-  memcpy(list, source_list->c_str(), source_list->length());
-  list[source_list->length()] = 0;
-
-  char *token = strtok(list, " ,");
-  if (token == NULL)
-    throw std::runtime_error("PDB: Failed parsing <info sources>");
-
-  do {
-    sources.push_back(token);
-  } while ((token = strtok(NULL, " ,")));
-  delete[] list;
-
-  // GDB usually annotates its output with special characters, following line of
-  // code removes them
-
-  // Remove command header from first file
-  {
-    auto &first_file = sources[0];
-    std::string new_string(first_file.begin() + 2, first_file.end());
-    first_file = new_string;
-  }
-
-  // Remove 2 newline characters from last file
-  {
-    auto &last_file = sources[0];
-    last_file.pop_back();
-    last_file.pop_back();
-  }
-
-  return sources;
-}
-
-std::pair<int, std::string> GDBDebugger::getFunction(std::string func_name) {
-  if (func_name.length() == 0)
-    throw std::runtime_error("PDB: Empty function name");
-
-  std::string command = makeCommand("info func " + func_name);
-  write(command);
-
-  auto result = readInput();
-  checkInput(result);
-
-  // Pointer to a vector position containing function information
-  size_t func_source = 0; // Path to a source file containing function
-  size_t func_decl = 0;   // Function declaration
-
-  for (size_t i = 0; i < result.size(); i++) {
-    auto &iter = result[i];
-
-    if (iter == "^done") {
-      // If string prior to "^done" is as follow, that means no function is
-      // found
-      auto &prev = result.at(i);
-
-      if (strstr(prev.c_str(), "All functions matching regular expression") !=
-          NULL)
-        throw std::runtime_error("PDB: No such function is found: " +
-                                 func_name);
-      else {
-        func_source = i - 2;
-        func_decl = i - 1;
-      }
-
-      break;
-    }
-  }
-
-  if (func_decl == func_source)
-    throw std::runtime_error("PDB: Failed parsing <info func " + func_name +
-                             ">");
-
-  if (strstr(result[func_source].c_str(), "Non-debugging symbol") != NULL)
-    throw std::runtime_error(
-        "PDB: Cannot obtain information about non-debugging symbols");
-
-  // Fetch path to source file in which function is located
-  auto &string_func_source = result[func_source];
-  std::string function_declaration(string_func_source.begin() + 2,
-                                   string_func_source.end() - 4);
-
-  // Fetch line at which function is declared
-  std::string accum;
-  auto &string_func_decl = result[func_decl];
-  size_t i = 2;
-
-  while (isdigit(string_func_decl[i])) {
-    accum += string_func_decl[i];
-    i++;
-  }
-
-  return std::make_pair(std::atoi(accum.c_str()), function_declaration);
-}
-
-void GDBDebugger::endDebug() {
+boost::leaf::result<void> GDBDebugger::endDebug() {
   std::string command = makeCommand("quit");
   write(command);
 
   // Skip whatever gdb has left on stdout just to let it exit peacefully
   read();
+  return {};
 }
 
-void GDBDebugger::setBreakpoint(PDBbr brpoint) {
+boost::leaf::result<void> GDBDebugger::setBreakpoint(PDBbr brpoint) {
   if (brpoint.second.length() == 0)
-    throw std::runtime_error("PDB: Error setting breakpoint in unknown file");
+    return boost::leaf::new_error<std::string>(
+        "Error setting breakpoint in unknown file");
 
   bool br_found = false;
 
@@ -190,7 +81,7 @@ void GDBDebugger::setBreakpoint(PDBbr brpoint) {
 
   // If breakpoint is already set on given position, return
   if (br_found == true)
-    return;
+    return {};
 
   // If breakpoint has not been set yet, add it to breakpoint list
   std::string command =
@@ -198,7 +89,9 @@ void GDBDebugger::setBreakpoint(PDBbr brpoint) {
   write(command);
 
   auto result = readInput();
-  checkInput(result);
+  auto check = checkInput(result);
+  if (!check)
+    return check;
 
   /**
    * At this moment, we may want to check output from "br" command
@@ -207,7 +100,7 @@ void GDBDebugger::setBreakpoint(PDBbr brpoint) {
    * before "^done" on more detailed information if so exist
    */
   if (strstr(result[1].c_str(), "No source file") != NULL) {
-    throw std::runtime_error(
+    return boost::leaf::new_error<std::string>(
         "PDB: Cannot set breakpoint at specified location: " + brpoint.second +
         ":" + std::to_string(brpoint.first));
   }
@@ -229,14 +122,15 @@ void GDBDebugger::setBreakpoint(PDBbr brpoint) {
 
   // Thow an exception if we failed to parse command
   if (strstr(token, "addr") == NULL) {
-    throw std::runtime_error("PDB: Failed parsing <br " + brpoint.second + ":" +
-                             std::to_string(brpoint.first) + ">");
+    return boost::leaf::new_error<std::string>(
+        "PDB: Failed parsing <br " + brpoint.second + ":" +
+        std::to_string(brpoint.first) + ">");
   }
 
   // If breakpoint has status "PENDING", it means we cannot obtain its
   // information from executable
   if (strstr(token, "<PENDING>") != NULL) {
-    throw std::runtime_error(
+    return boost::leaf::new_error<std::string>(
         "PDB: Cannot set breakpoint at specified location: " + brpoint.second +
         ":" + std::to_string(brpoint.first));
   }
@@ -256,5 +150,7 @@ void GDBDebugger::setBreakpoint(PDBbr brpoint) {
   if (br_found != true)
     breakpoints.push_back(
         std::make_pair(brpoint.second, std::vector<int>(1, brpoint.first)));
+
+  return {};
 }
 } // namespace pdb

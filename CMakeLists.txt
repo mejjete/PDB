@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(PDB VERSION 0.1 LANGUAGES CXX)
+project(PDB VERSION 0.2 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -15,6 +15,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 find_package(Doxygen COMPONENTS doxygen)
+find_package(LLVM REQUIRED CONFIG)
+find_package(Boost 1.75.0 REQUIRED)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 if(DOXYGEN_FOUND)
     set(DOXYGEN_INPUT_DIRS
@@ -50,8 +55,8 @@ set(PROJECT_SOURCES
 
 add_library(pdbmanager
     pdb_manager/PDBProcess.cpp
-    pdb_manager/PDBDebug.cpp
     pdb_manager/GDBDebugger.cpp
+    # pdb_manager/LLDBDebugger.cpp
     pdb_manager/PDB.hpp)
 
 add_executable(pdb_launch
@@ -70,9 +75,19 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     )
 endif()
 
-target_compile_options(pdbmanager PRIVATE -Wall -Wextra -Wunused-parameter)
-target_include_directories(pdbmanager PRIVATE pdb_manager pdb_runtime ${CMAKE_SOURCE_DIR})
-target_include_directories(PDB PRIVATE pdb_manager pdb_runtime ${CMAKE_SOURCE_DIR})
+target_compile_options(pdbmanager PRIVATE -Wall -Wextra -Wunused-parameter -fno-exceptions)
+target_include_directories(pdbmanager PRIVATE pdb_manager pdb_runtime ${CMAKE_SOURCE_DIR} ${LLVM_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+target_include_directories(PDB PRIVATE pdb_manager pdb_runtime ${CMAKE_SOURCE_DIR} ${Boost_INCLUDE_DIRS})
+target_include_directories(pdb_launch PRIVATE pdb_manager pdb_runtime ${Boost_INCLUDE_DIRS})
+target_include_directories(pdb_man PRIVATE pdb_manager pdb_runtime ${Boost_INCLUDE_DIRS})
+
+llvm_map_components_to_libnames(llvm_libs
+    Object
+    DebugInfoDWARF
+    Support
+)
+
+target_link_libraries(pdbmanager PRIVATE ${llvm_libs})
 target_link_libraries(PDB PRIVATE Qt${QT_VERSION_MAJOR}::Widgets pdbmanager)
 target_link_libraries(pdb_man PRIVATE pdbmanager)
 
