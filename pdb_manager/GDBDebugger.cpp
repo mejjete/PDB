@@ -1,4 +1,5 @@
 #include "PDBDebugger.hpp"
+#include <algorithm>
 #include <cstring>
 #include <ranges>
 #include <stdexcept>
@@ -58,7 +59,7 @@ std::vector<std::string> GDBDebugger::getSourceFiles() {
   checkInput(result);
 
   // Find first occurence of ^done
-  auto done_expr = std::ranges::find(result, "^done");
+  auto done_expr = std::find(result.begin(), result.end(), "^done");
   if (done_expr == result.end())
     throw std::runtime_error("PDB: Failed parsing <info sources>");
 
@@ -178,7 +179,8 @@ void GDBDebugger::setBreakpoint(PDBbr brpoint) {
   // Check if we have already set up this breakpoint
   for (auto &source_files : breakpoints) {
     if (source_files.first == brpoint.second) {
-      auto br = std::ranges::find(source_files.second, brpoint.first);
+      auto br = std::find(source_files.second.begin(),
+                          source_files.second.end(), brpoint.first);
       if (br != source_files.second.end()) {
         br_found = true;
         break;
@@ -211,7 +213,7 @@ void GDBDebugger::setBreakpoint(PDBbr brpoint) {
   }
 
   // Find string that starts with "=breakpoint-created"
-  auto br_created = std::ranges::find(result, "^done") - 1;
+  auto br_created = std::find(result.begin(), result.end(), "^done") - 1;
 
   // Tokenize string
   char *list = new char[br_created->length() + 1];

@@ -1,12 +1,12 @@
 #pragma once
 
 #include "PDBDebugger.hpp"
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
 #include <memory>
 #include <poll.h>
-#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <sys/file.h>
@@ -113,10 +113,12 @@ void PDBDebug::launch(std::string start_rountine, std::string exec,
 
   // Fetch process count from command-line argument string
   int proc_count;
-  auto iter = std::ranges::find(pdb_routine_parced, "-np");
+  auto iter =
+      std::find(pdb_routine_parced.begin(), pdb_routine_parced.end(), "-np");
 
   if (iter == pdb_routine_parced.end()) {
-    iter = std::ranges::find(pdb_routine_parced, "-n");
+    iter =
+        std::find(pdb_routine_parced.begin(), pdb_routine_parced.end(), "-n");
     if (iter == pdb_routine_parced.end())
       throw std::runtime_error("Missing -np/-n options\n");
   }
