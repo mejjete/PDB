@@ -14,13 +14,13 @@ void PDBcommand(Debugger &pdb_instance) {
   std::cout << "All Source Files: \n";
 
   // Print out the full information about source files
-  // auto source_array = pdb_instance.getSourceFiles();
-  // for (auto &iter : source_array)
-  //   printf("\033[92m%s\033[0m,", iter.c_str());
-  // std::cout << std::endl;
-  // std::cout <<
-  // "---------------------------------------------------------------"
-  //              "------------\n";
+  auto source_array = pdb_instance.getSourceFiles();
+  for (auto &iter : *source_array) {
+    printf("\033[92m%s\033[0m,", iter.c_str());
+    std::cout << std::endl;
+  }
+  std::cout << "---------------------------------------------------------------"
+               "------------\n";
 
   // Print out information about given function
   //   std::string func = "main";
@@ -57,7 +57,6 @@ int main() {
   using namespace pdb;
   auto debug = Debugger::create("mpirun -np 4", "/usr/bin/gdb",
                                 "./mpi_test.out", "arg1 arg2 arg3");
-
   PDBcommand(*debug);
   return 0;
 }

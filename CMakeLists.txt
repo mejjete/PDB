@@ -76,6 +76,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 endif()
 
 target_compile_options(pdbmanager PRIVATE -Wall -Wextra -Wunused-parameter -fno-exceptions)
+target_compile_definitions(pdbmanager PUBLIC -DBOOST_LEAF_NO_EXCEPTIONS)
 target_include_directories(pdbmanager PRIVATE pdb_manager pdb_runtime ${CMAKE_SOURCE_DIR} ${LLVM_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 target_include_directories(PDB PRIVATE pdb_manager pdb_runtime ${CMAKE_SOURCE_DIR} ${Boost_INCLUDE_DIRS})
 target_include_directories(pdb_launch PRIVATE pdb_manager pdb_runtime ${Boost_INCLUDE_DIRS})

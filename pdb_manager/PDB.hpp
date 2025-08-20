@@ -75,10 +75,7 @@ public:
    *  to every source file recorded in executable.
    *  On error, return an error string
    */
-  boost::leaf::result<std::vector<std::string>> getSourceFiles() const {
-    return boost::leaf::new_error<std::string>(
-        "getSourceFiles(): not implemented");
-  }
+  boost::leaf::result<std::vector<std::string>> getSourceFiles() const;
 
   /**
    *  @param func_name - name of the function in question
@@ -299,7 +296,6 @@ template <typename DebuggerType> PDBDebug<DebuggerType>::~PDBDebug() {
     int statlock;
     pid_t pid = waitpid(exec_pid, &statlock, WNOHANG);
     if (pid == 0) {
-      printf("PDB: Killing main process\n");
       kill(exec_pid, SIGKILL);
     }
   }
@@ -374,10 +370,58 @@ template <typename DebuggerType>
 boost::leaf::result<void>
 PDBDebug<DebuggerType>::setBreakpoint(size_t proc, PDBbr brpoints) {
   if (proc >= pdb_proc.size())
-    throw std::runtime_error("PDB: Invalid process identifier: " +
-                             std::to_string(proc));
+    return boost::leaf::new_error<std::string>(
+        "PDB: Invalid process identifier: " + std::to_string(proc));
 
   auto &ptr = pdb_proc[proc];
   ptr->setBreakpoint(brpoints);
+}
+
+template <typename DebuggerType>
+boost::leaf::result<std::vector<std::string>>
+PDBDebug<DebuggerType>::getSourceFiles() const {
+  std::vector<std::string> files;
+
+  auto expected_buffer = llvm::MemoryBuffer::getFile(executable);
+  if (!expected_buffer)
+    return boost::leaf::new_error<std::string>("Error reading file: " +
+                                               executable);
+
+  auto obj_expected = llvm::object::ObjectFile::createObjectFile(
+      expected_buffer.get()->getMemBufferRef());
+  if (!obj_expected)
+    return boost::leaf::new_error<std::string>("Invalid object file: " +
+                                               executable);
+
+  std::unique_ptr<llvm::DWARFContext> DICtx =
+      llvm::DWARFContext::create(**obj_expected);
+
+  for (const auto &CU : DICtx->compile_units()) {
+    if (!CU)
+      continue;
+    const auto *LT = DICtx->getLineTableForUnit(CU.get());
+    if (!LT)
+      continue;
+
+    for (const auto &Entry : LT->Prologue.FileNames) {
+      std::string Path;
+
+      if (Entry.DirIdx > 0 &&
+          Entry.DirIdx <= LT->Prologue.IncludeDirectories.size()) {
+        if (auto Dir = LT->Prologue.IncludeDirectories[Entry.DirIdx - 1]
+                           .getAsCString())
+          Path = *Dir;
+        Path += "/";
+      }
+
+      if (auto Name = Entry.Name.getAsCString())
+        Path += *Name;
+
+      if (!Path.empty())
+        files.push_back(Path);
+    }
+  }
+
+  return files;
 }
 } // namespace pdb
