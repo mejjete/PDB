@@ -54,8 +54,8 @@ void PDBcommand(Debugger &pdb_instance) {
 
 int main() {
   using namespace pdb;
-  auto debug = Debugger::create("mpirun -np 4", "/usr/bin/gdb",
-                                "./mpi_test.out", "arg1 arg2 arg3");
+  auto debug =
+      Debugger::create("mpirun -np 4", "/usr/bin/gdb", "./mpi_test.out");
   PDBcommand(*debug);
   return 0;
 }

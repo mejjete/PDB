@@ -9,8 +9,8 @@ int main(int argc, char **argv) {
   QApplication app(argc, argv);
 
   using namespace pdb;
-  auto debug = Debugger::create("mpirun -np 4", "/usr/bin/gdb",
-                                "./mpi_test.out", "arg1 arg2 arg3");
+  auto debug =
+      Debugger::create("mpirun -np 4", "/usr/bin/gdb", "./mpi_test.out");
   MainWindow mainWindow;
   mainWindow.resize(720, 480);
   mainWindow.setWindowTitle("PDB UI (beta)");

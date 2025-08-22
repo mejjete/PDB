@@ -13,18 +13,14 @@ public:
   using PDBbr = std::pair<int, std::string>;
 
 protected:
-  const std::string exec_name;
-  const std::string exec_opts;
   PDBbr_list breakpoints;
 
 public:
-  PDBDebugger(const std::string &name, const std::string &opts)
-      : exec_name(name), exec_opts(opts) {};
+  PDBDebugger() {};
   PDBDebugger(const PDBDebugger &) = delete;
   PDBDebugger(PDBDebugger &&) = default;
   virtual ~PDBDebugger() {};
 
-  virtual std::string getOptions() const { return exec_opts; };
   virtual PDBbr_list getBreakpointList() = 0;
 
   /**
@@ -41,6 +37,9 @@ public:
 
   virtual boost::leaf::result<void>
   checkInput(const std::vector<std::string> &) const = 0;
+
+  // Default set of options being passed to a debugger
+  static std::string getDefaultOptions() { return ""; };
 };
 
 // GNU gdb interface
@@ -59,21 +58,20 @@ private:
 
 public:
   // By default, gdb will launch with Machine Interface enabled
-  GDBDebugger(const std::string &name, const std::string &opts = "")
-      : PDBDebugger(name, opts + " -q --interpreter=mi2") {};
+  GDBDebugger() {};
   virtual ~GDBDebugger() {};
 
-  std::string getOptions() const { return exec_opts; };
   virtual boost::leaf::result<void> setBreakpoint(PDBbr);
   virtual PDBbr_list getBreakpointList() { return breakpoints; };
   virtual boost::leaf::result<void> startDebug(const std::string &) {
     return {};
   };
   virtual boost::leaf::result<void> endDebug();
-
   virtual std::vector<std::string> readInput();
 
   virtual boost::leaf::result<void>
   checkInput(const std::vector<std::string> &) const;
+
+  static std::string getDefaultOptions() { return "-q --interpreter=mi2"; };
 };
 } // namespace pdb

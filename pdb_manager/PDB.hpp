@@ -63,15 +63,13 @@ public:
    * target-specific flags [example] : "mpirun -oversubscribe -np 4"
    * @param debugger - path to debugger
    * @param exec - user-supplied executable
-   * @param args - arguments to be passed directly to executable
    *
    * PDBDebug<GDBDebugger>("mpirun -np 4 -oversubscribe", "/usr/bin/gdb",
    * "./mpi_test.out", "arg1, arg2, arg3");
    */
   static boost::leaf::result<PDBDebug> create(const std::string &start_rountine,
                                               const std::string &debugger,
-                                              const std::string &exec,
-                                              const std::string &args);
+                                              const std::string &exec);
 
   /**
    *  @return On success, return vector of strings, each containing full path
@@ -115,9 +113,10 @@ public:
 };
 
 template <typename DebuggerType>
-boost::leaf::result<PDBDebug<DebuggerType>> PDBDebug<DebuggerType>::create(
-    const std::string &start_rountine, const std::string &debugger,
-    const std::string &exec, const std::string &args) {
+boost::leaf::result<PDBDebug<DebuggerType>>
+PDBDebug<DebuggerType>::create(const std::string &start_rountine,
+                               const std::string &debugger,
+                               const std::string &exec) {
   PDBDebug debugInstance;
 
   // Create and initialize in-memory representation of DWARF information
@@ -142,29 +141,26 @@ boost::leaf::result<PDBDebug<DebuggerType>> PDBDebug<DebuggerType>::create(
   debugInstance.dwarf_mem_buf = std::move(*expected_buffer);
   debugInstance.dwarf_context = std::move(dwarf_context);
 
-  // Parse and handle executable arguments
-  std::vector<std::string> pdb_args_parced;
-  std::vector<std::string> pdb_routine_parced;
-
   // Tokenize command-line arguments
-  pdb_args_parced = PDBDebug<DebuggerType>::parseArgs(args, " ;\n\r");
-  pdb_routine_parced =
+  auto pdb_routine_parsed =
       PDBDebug<DebuggerType>::parseArgs(start_rountine, " ;\n\r");
+  auto pdb_default_debug_args = PDBDebug<DebuggerType>::parseArgs(
+      DebuggerType::getDefaultOptions(), " ;\n\r");
 
   // Fetch process count from command-line argument string
   int proc_count;
   auto iter =
-      std::find(pdb_routine_parced.begin(), pdb_routine_parced.end(), "-np");
+      std::find(pdb_routine_parsed.begin(), pdb_routine_parsed.end(), "-np");
 
-  if (iter == pdb_routine_parced.end()) {
+  if (iter == pdb_routine_parsed.end()) {
     iter =
-        std::find(pdb_routine_parced.begin(), pdb_routine_parced.end(), "-n");
-    if (iter == pdb_routine_parced.end())
+        std::find(pdb_routine_parsed.begin(), pdb_routine_parsed.end(), "-n");
+    if (iter == pdb_routine_parsed.end())
       return boost::leaf::new_error<std::string>("Missing -np/-n option");
   }
 
   iter = std::next(iter);
-  if (iter == pdb_args_parced.end())
+  if (iter == pdb_routine_parsed.end())
     return boost::leaf::new_error<std::string>(
         "Number of processes not provided");
 
@@ -173,7 +169,7 @@ boost::leaf::result<PDBDebug<DebuggerType>> PDBDebug<DebuggerType>::create(
     return boost::leaf::new_error<std::string>(
         "Invalid number of MPI processes");
 
-  // Create temporal file to pass name of pipes
+  // Create temporal file to pass name of pipe
   char temp_file[] = "/tmp/pdbpipeXXXXXXX";
   debugInstance.temporal_file = mkstemp(temp_file);
   if (debugInstance.temporal_file < 0)
@@ -195,8 +191,7 @@ boost::leaf::result<PDBDebug<DebuggerType>> PDBDebug<DebuggerType>::create(
   debugInstance.pdb_proc.reserve(proc_count);
 
   for (int i = 0; i < proc_count; i++) {
-    debugInstance.pdb_proc.emplace_back(
-        std::make_unique<DebuggerType>(debugger, exec));
+    debugInstance.pdb_proc.emplace_back(std::make_unique<DebuggerType>());
     auto proc_filenames = debugInstance.pdb_proc[i]->getPipeNames();
 
     // Memorize pipe names
@@ -216,13 +211,13 @@ boost::leaf::result<PDBDebug<DebuggerType>> PDBDebug<DebuggerType>::create(
    * vector. The following code adds a few extra arguments. This behavior is
    * implementation-defined and must synchronize in the receving process
    */
-  int old_argc = pdb_routine_parced.size() + 2;
-  int total_argc = old_argc + 6;
+  int total_argc =
+      pdb_routine_parsed.size() + pdb_default_debug_args.size() + 5;
   char **new_argv = new char *[total_argc];
   int new_arg_size = 0;
 
   // Step 1: copy routine call
-  for (auto &token : pdb_routine_parced) {
+  for (auto &token : pdb_routine_parsed) {
     new_argv[new_arg_size] = new char[token.length() + 1];
     memcpy(new_argv[new_arg_size], token.c_str(), token.length());
     new_argv[new_arg_size][token.length()] = 0;
@@ -236,24 +231,33 @@ boost::leaf::result<PDBDebug<DebuggerType>> PDBDebug<DebuggerType>::create(
   new_argv[new_arg_size][strlen(pdb_launch)] = 0;
   new_arg_size++;
 
-  // Step 3: copy debugger executable and
+  // Step 3: copy debugger executable path
   new_argv[new_arg_size] = new char[debugger.length() + 1];
   memcpy(new_argv[new_arg_size], debugger.c_str(), debugger.length());
   new_argv[new_arg_size][debugger.length()] = 0;
   new_arg_size++;
 
-  // Add executable
+  // Step 4: add default debugger arguments
+  for (auto &token : pdb_default_debug_args) {
+    new_argv[new_arg_size] = new char[token.length() + 1];
+    memcpy(new_argv[new_arg_size], token.c_str(), token.length());
+    new_argv[new_arg_size][token.length()] = 0;
+    new_arg_size++;
+  }
+
+  // Step 5: add executable
   new_argv[new_arg_size] = new char[exec.length() + 1];
   memcpy(new_argv[new_arg_size], exec.c_str(), exec.length());
   new_argv[new_arg_size][exec.length()] = 0;
   new_arg_size++;
 
-  // Step 4: add extra arguments, namely temporal file and process number
+  // Step 6: add named pipe name
   new_argv[new_arg_size] = new char[strlen(temp_file) + 1];
   memcpy(new_argv[new_arg_size], temp_file, strlen(temp_file));
   new_argv[new_arg_size][strlen(temp_file)] = 0;
   new_arg_size++;
 
+  // Step 7: add process count number
   std::string proc_count_char = std::to_string(proc_count);
   new_argv[new_arg_size] = new char[proc_count_char.length() + 1];
   memcpy(new_argv[new_arg_size], proc_count_char.c_str(),
@@ -264,8 +268,6 @@ boost::leaf::result<PDBDebug<DebuggerType>> PDBDebug<DebuggerType>::create(
   // Terminating NULL string for exec function
   new_argv[new_arg_size] = NULL;
 
-  // std::cout << "Forking process\n";
-
   // Spawn process
   debugInstance.exec_pid = fork();
   if (debugInstance.exec_pid == 0) {
@@ -273,7 +275,7 @@ boost::leaf::result<PDBDebug<DebuggerType>> PDBDebug<DebuggerType>::create(
     close(STDIN_FILENO);
     close(STDERR_FILENO);
 
-    std::string first_exec = pdb_routine_parced[0];
+    std::string first_exec = pdb_routine_parsed[0];
     first_exec.push_back(0);
 
     if (execvp(first_exec.c_str(), new_argv) < 0)
@@ -281,7 +283,7 @@ boost::leaf::result<PDBDebug<DebuggerType>> PDBDebug<DebuggerType>::create(
   }
 
   // After exec, we can finally free argument string
-  for (int i = 0; i < new_arg_size; i++)
+  for (int i = 0; i < new_arg_size - 1; i++)
     delete[] new_argv[i];
 
   delete[] new_argv;
@@ -366,17 +368,17 @@ PDBDebug<DebuggerType>::parseArgs(const std::string &pdb_args,
   char *args = new char[pdb_args.length()];
   memcpy(args, pdb_args.c_str(), pdb_args.length());
   args[pdb_args.length()] = 0;
-  std::vector<std::string> pdb_args_parced;
+  std::vector<std::string> pdb_args_parsed;
 
   char *token = strtok(args, delim.c_str());
   if (token == NULL)
-    return pdb_args_parced;
+    return pdb_args_parsed;
 
   do {
-    pdb_args_parced.push_back(token);
+    pdb_args_parsed.push_back(token);
   } while ((token = strtok(NULL, delim.c_str())));
 
-  return pdb_args_parced;
+  return pdb_args_parsed;
 }
 
 template <typename DebuggerType>
