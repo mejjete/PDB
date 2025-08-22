@@ -388,8 +388,12 @@ PDBDebug<DebuggerType>::setBreakpointsAll(PDBbr brpoint) {
     return boost::leaf::new_error<std::string>(
         "PDB: Invalid number of processes: 0");
 
-  for (auto &iter : pdb_proc)
-    iter->setBreakpoint(brpoint);
+  for (auto &iter : pdb_proc) {
+    auto result = iter->setBreakpoint(brpoint);
+    if (!result)
+      return result;
+  }
+  return {};
 }
 
 template <typename DebuggerType>
@@ -400,7 +404,10 @@ PDBDebug<DebuggerType>::setBreakpoint(size_t proc, PDBbr brpoints) {
         "PDB: Invalid process identifier: " + std::to_string(proc));
 
   auto &ptr = pdb_proc[proc];
-  ptr->setBreakpoint(brpoints);
+  auto result = ptr->setBreakpoint(brpoints);
+  if (!result)
+    return result;
+  return {};
 }
 
 template <typename DebuggerType>
@@ -449,7 +456,7 @@ PDBDebug<DebuggerType>::getFunctionLocation(const std::string &func_name) {
           if (func_name == name) {
             // Obtain function source file
             std::string file_idx = die.getDeclFile(
-                llvm::DILineInfoSpecifier::FileLineInfoKind::AbsoluteFilePath);
+                llvm::DILineInfoSpecifier::FileLineInfoKind::RawValue);
             // Obtain function line number
             uint64_t file_line = die.getDeclLine();
             return std::make_pair(file_line, file_idx);

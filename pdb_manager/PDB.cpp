@@ -29,27 +29,22 @@ void PDBcommand(Debugger &pdb_instance) {
   std::cout << "\033[92mSource File: " << function->second << "\033[0m"
             << std::endl;
   std::cout << "\033[92mLine: " << function->first << "\033[0m" << std::endl;
+  std::cout << "---------------------------------------------------------------"
+               "------------\n";
 
-  //   std::cout <<
-  //   "---------------------------------------------------------------"
-  //                "------------\n";
-  //   bool caught = false;
-  //   try {
-  //     // Set up a breakpoint
-  //     Debugger::PDBbr br(1, function.second);
-  //     pdb_instance.setBreakpointsAll(br);
-  //   } catch (std::runtime_error &err) {
-  //     caught = true;
-  //   }
+  // Set up a breakpoint
+  std::cout << "Setting breakpoint at: " << function->second << ":"
+            << function->first << std::endl;
+  Debugger::PDBbr br(function->first, function->second);
+  auto br_result = pdb_instance.setBreakpointsAll(br);
 
-  //   std::cout << "Breakpoint: " << function.second << ":" << 1 << std::endl;
-  //   if (caught == false)
-  //     std::cout << "\033[92mBreakpoint set at: " << function.second << ":" <<
-  //     1
-  //               << "\033[0m\n";
-  //   else
-  //     std::cout << "\033[92mError setting breakpoint at: " << function.second
-  //               << ":" << 1 << "\033[0m\n";
+  if (br_result) {
+    std::cout << "\033[92mBreakpoints set at: " << function->second << ":"
+              << function->first << "\033[0m\n";
+  } else {
+    std::cout << "\033[92mError setting breakpoints at: " << function->second
+              << ":" << function->first << "\033[0m\n";
+  }
 }
 
 int main() {
