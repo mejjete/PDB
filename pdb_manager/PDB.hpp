@@ -39,6 +39,11 @@ private:
   std::string temporal_file_name; // Temporal pipe for arguments passing
   std::string executable;         // User-supplied executable name
   pid_t exec_pid;                 // Executable PID process
+  std::unique_ptr<llvm::DWARFContext>
+      dwarf_context; // Object comprising of dwarf information on executable
+  std::unique_ptr<llvm::MemoryBuffer>
+      dwarf_mem_buf; // In-memory representation of an executable, needed for
+                     // dwarf_context to operate on
 
   // Debugger instances associated with each debugging process
   std::vector<std::unique_ptr<PDBDebugger>> pdb_proc;
@@ -118,8 +123,30 @@ boost::leaf::result<PDBDebug<DebuggerType>>
 PDBDebug<DebuggerType>::create(std::string start_rountine, std::string debugger,
                                std::string exec, std::string args) {
   PDBDebug debugInstance;
-  debugInstance.executable = exec;
 
+  // Create and initialize in-memory representation of DWARF information
+  // containing in executable
+  auto expected_buffer = llvm::MemoryBuffer::getFile(exec);
+  if (!expected_buffer)
+    return boost::leaf::new_error<std::string>("Error reading executable");
+
+  auto expected_obj_file = llvm::object::ObjectFile::createObjectFile(
+      expected_buffer->get()->getMemBufferRef());
+  if (!expected_obj_file)
+    return boost::leaf::new_error<std::string>(
+        "Error creating in-memory executable object");
+
+  auto dwarf_context =
+      std::move(llvm::DWARFContext::create(**expected_obj_file));
+  if (!dwarf_context)
+    return boost::leaf::new_error<std::string>(
+        "Error initializing DWARF information");
+
+  debugInstance.executable = exec;
+  debugInstance.dwarf_mem_buf = std::move(*expected_buffer);
+  debugInstance.dwarf_context = std::move(dwarf_context);
+
+  // Parse and handle executable arguments
   std::vector<std::string> pdb_args_parced;
   std::vector<std::string> pdb_routine_parced;
 
@@ -382,43 +409,29 @@ boost::leaf::result<std::vector<std::string>>
 PDBDebug<DebuggerType>::getSourceFiles() const {
   std::vector<std::string> files;
 
-  auto expected_buffer = llvm::MemoryBuffer::getFile(executable);
-  if (!expected_buffer)
-    return boost::leaf::new_error<std::string>("Error reading file: " +
-                                               executable);
-
-  auto obj_expected = llvm::object::ObjectFile::createObjectFile(
-      expected_buffer.get()->getMemBufferRef());
-  if (!obj_expected)
-    return boost::leaf::new_error<std::string>("Invalid object file: " +
-                                               executable);
-
-  std::unique_ptr<llvm::DWARFContext> DICtx =
-      llvm::DWARFContext::create(**obj_expected);
-
-  for (const auto &CU : DICtx->compile_units()) {
+  for (const auto &CU : dwarf_context->compile_units()) {
     if (!CU)
       continue;
-    const auto *LT = DICtx->getLineTableForUnit(CU.get());
-    if (!LT)
+    const auto *lt = dwarf_context->getLineTableForUnit(CU.get());
+    if (!lt)
       continue;
 
-    for (const auto &Entry : LT->Prologue.FileNames) {
-      std::string Path;
+    for (const auto &entry : lt->Prologue.FileNames) {
+      std::string path;
 
-      if (Entry.DirIdx > 0 &&
-          Entry.DirIdx <= LT->Prologue.IncludeDirectories.size()) {
-        if (auto Dir = LT->Prologue.IncludeDirectories[Entry.DirIdx - 1]
+      if (entry.DirIdx > 0 &&
+          entry.DirIdx <= lt->Prologue.IncludeDirectories.size()) {
+        if (auto dir = lt->Prologue.IncludeDirectories[entry.DirIdx - 1]
                            .getAsCString())
-          Path = *Dir;
-        Path += "/";
+          path = *dir;
+        path += "/";
       }
 
-      if (auto Name = Entry.Name.getAsCString())
-        Path += *Name;
+      if (auto name = entry.Name.getAsCString())
+        path += *name;
 
-      if (!Path.empty())
-        files.push_back(Path);
+      if (!path.empty())
+        files.push_back(path);
     }
   }
 
