@@ -22,14 +22,13 @@ void PDBcommand(Debugger &pdb_instance) {
   std::cout << "---------------------------------------------------------------"
                "------------\n";
 
-  // Print out information about given function
-  //   std::string func = "main";
-  //   auto function = pdb_instance.getFunctionInfo("main");
-  //   std::cout << "Function: " << func << std::endl;
-  //   std::cout << "\033[92mSource File: " << function.second << "\033[0m"
-  //             << std::endl;
-  //   std::cout << "\033[92mLine: " << function.first << "\033[0m" <<
-  //   std::endl;
+  // Print out information about given function std::string func = "main";
+  std::string func_in_question = "main";
+  auto function = pdb_instance.getFunctionLocation(func_in_question);
+  std::cout << "Function: " << func_in_question << std::endl;
+  std::cout << "\033[92mSource File: " << function->second << "\033[0m"
+            << std::endl;
+  std::cout << "\033[92mLine: " << function->first << "\033[0m" << std::endl;
 
   //   std::cout <<
   //   "---------------------------------------------------------------"

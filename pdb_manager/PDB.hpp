@@ -84,14 +84,12 @@ public:
 
   /**
    *  @param func_name - name of the function in question
-   *  @return On success, returns pair describing function information
+   *  @return On success, return pair describing function information
    *  first - location of a function in a source file (line)
-   *  second - full path of a source file of a given function
+   *  second - full path of a source file of a function in question
    */
-  boost::leaf::result<std::pair<size_t, std::string>>
-  getFunctionLocation(const std::string &func_name) const {
-    return boost::leaf::new_error("getFunctionLocation(): not implemented");
-  };
+  boost::leaf::result<std::pair<uint64_t, std::string>>
+  getFunctionLocation(const std::string &func_name);
 
   boost::leaf::result<void> setBreakpointsAll(PDBbr brpoint);
   boost::leaf::result<void> setBreakpoint(size_t proc, PDBbr brpoints);
@@ -436,5 +434,30 @@ PDBDebug<DebuggerType>::getSourceFiles() const {
   }
 
   return files;
+}
+
+template <typename DebuggerType>
+boost::leaf::result<std::pair<uint64_t, std::string>>
+PDBDebug<DebuggerType>::getFunctionLocation(const std::string &func_name) {
+  for (const auto &CU : dwarf_context->compile_units()) {
+    for (const auto &entry : CU->dies()) {
+      llvm::DWARFDie die(CU.get(), &entry);
+
+      if (die.getTag() == llvm::dwarf::DW_TAG_subprogram) {
+        if (const char *name = die.getName(llvm::DINameKind::ShortName)) {
+          if (func_name == name) {
+            // Obtain function source file
+            std::string file_idx = die.getDeclFile(
+                llvm::DILineInfoSpecifier::FileLineInfoKind::AbsoluteFilePath);
+            // Obtain function line number
+            uint64_t file_line = die.getDeclLine();
+            return std::make_pair(file_line, file_idx);
+          }
+        }
+      }
+    }
+  }
+
+  return boost::leaf::new_error<std::string>("Unknown function: " + func_name);
 }
 } // namespace pdb
