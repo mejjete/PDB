@@ -49,8 +49,8 @@ private:
   std::vector<std::unique_ptr<PDBDebugger>> pdb_proc;
 
   // Parse the input string args into tokens separated by delim
-  static std::vector<std::string> parseArgs(std::string args,
-                                            std::string delim);
+  static std::vector<std::string> parseArgs(const std::string &args,
+                                            const std::string &delim);
 
 public:
   using PDBbr = typename PDBDebugger::PDBbr;
@@ -64,16 +64,14 @@ public:
    * @param debugger - path to debugger
    * @param exec - user-supplied executable
    * @param args - arguments to be passed directly to executable
-   * @param dargs - arguments to be passed directly to external debugger
    *
    * PDBDebug<GDBDebugger>("mpirun -np 4 -oversubscribe", "/usr/bin/gdb",
-   * "./mpi_test.out", "arg1, arg2, arg3", [following arguments being passed to
-   * a DebuggerType during construction]);
+   * "./mpi_test.out", "arg1, arg2, arg3");
    */
-  static boost::leaf::result<PDBDebug> create(std::string start_rountine,
-                                              std::string debugger,
-                                              std::string exec,
-                                              std::string args);
+  static boost::leaf::result<PDBDebug> create(const std::string &start_rountine,
+                                              const std::string &debugger,
+                                              const std::string &exec,
+                                              const std::string &args);
 
   /**
    *  @return On success, return vector of strings, each containing full path
@@ -117,9 +115,9 @@ public:
 };
 
 template <typename DebuggerType>
-boost::leaf::result<PDBDebug<DebuggerType>>
-PDBDebug<DebuggerType>::create(std::string start_rountine, std::string debugger,
-                               std::string exec, std::string args) {
+boost::leaf::result<PDBDebug<DebuggerType>> PDBDebug<DebuggerType>::create(
+    const std::string &start_rountine, const std::string &debugger,
+    const std::string &exec, const std::string &args) {
   PDBDebug debugInstance;
 
   // Create and initialize in-memory representation of DWARF information
@@ -362,8 +360,9 @@ PDBDebug<DebuggerType>::join(useconds_t usec) {
 }
 
 template <typename DebuggerType>
-std::vector<std::string> PDBDebug<DebuggerType>::parseArgs(std::string pdb_args,
-                                                           std::string delim) {
+std::vector<std::string>
+PDBDebug<DebuggerType>::parseArgs(const std::string &pdb_args,
+                                  const std::string &delim) {
   char *args = new char[pdb_args.length()];
   memcpy(args, pdb_args.c_str(), pdb_args.length());
   args[pdb_args.length()] = 0;

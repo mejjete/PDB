@@ -34,7 +34,7 @@ GDBDebugger::checkInput(const std::vector<std::string> &str) const {
   return {};
 }
 
-std::vector<std::string> GDBDebugger::stringifyInput(std::string input) {
+std::vector<std::string> GDBDebugger::stringifyInput(const std::string &input) {
   char *list = new char[input.length() + 1];
   memcpy(list, input.c_str(), input.length());
   list[input.length()] = 0;

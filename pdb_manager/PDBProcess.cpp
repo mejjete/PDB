@@ -138,7 +138,7 @@ int PDBProcess::openFIFO() {
   return 0;
 }
 
-void PDBProcess::write(std::string msg) {
+void PDBProcess::write(const std::string &msg) {
   if (msg.length() == 0)
     return;
 
@@ -148,7 +148,7 @@ void PDBProcess::write(std::string msg) {
 
 std::string PDBProcess::read() { return buffer->get(); }
 
-void PDBProcess::StreamBuffer::add(std::string str) {
+void PDBProcess::StreamBuffer::add(const std::string &str) {
   if (str.length() == 0)
     return;
 

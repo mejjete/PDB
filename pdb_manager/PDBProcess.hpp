@@ -14,19 +14,6 @@
 #include <unistd.h>
 #include <utility>
 
-#include <atomic>
-#include <list>
-#include <memory>
-#include <mutex>
-#include <sstream>
-#include <string>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <thread>
-#include <unistd.h>
-#include <utility>
-
 namespace pdb {
 /**
  * Process handler that creates connections to spawned processes.
@@ -64,7 +51,7 @@ public:
      * Separates input string str by newline character and adds each string
      * to FIFO buffer stream_buffer.
      */
-    void add(std::string str);
+    void add(const std::string &str);
   };
 
 private:
@@ -109,6 +96,6 @@ protected:
   std::string read();
 
   // Issues a write to a process write-end pipe
-  void write(std::string);
+  void write(const std::string &);
 };
 } // namespace pdb

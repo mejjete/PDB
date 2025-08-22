@@ -18,7 +18,7 @@ protected:
   PDBbr_list breakpoints;
 
 public:
-  PDBDebugger(std::string name, std::string opts)
+  PDBDebugger(const std::string &name, const std::string &opts)
       : exec_name(name), exec_opts(opts) {};
   PDBDebugger(const PDBDebugger &) = delete;
   PDBDebugger(PDBDebugger &&) = default;
@@ -33,7 +33,7 @@ public:
    * runtime
    * @return On error, throws std::runtime_error
    */
-  virtual boost::leaf::result<void> startDebug(std::string args) = 0;
+  virtual boost::leaf::result<void> startDebug(const std::string &args) = 0;
   virtual boost::leaf::result<void> endDebug() = 0;
   virtual boost::leaf::result<void> setBreakpoint(PDBbr brpoint) = 0;
 
@@ -55,18 +55,20 @@ private:
 
   // Leading \n is essential for gdb, it indicates end of input
   std::string makeCommand(std::string comm) { return comm += "\n"; };
-  std::vector<std::string> stringifyInput(std::string);
+  std::vector<std::string> stringifyInput(const std::string &);
 
 public:
   // By default, gdb will launch with Machine Interface enabled
-  GDBDebugger(std::string name, std::string opts = "")
+  GDBDebugger(const std::string &name, const std::string &opts = "")
       : PDBDebugger(name, opts + " -q --interpreter=mi2") {};
   virtual ~GDBDebugger() {};
 
   std::string getOptions() const { return exec_opts; };
   virtual boost::leaf::result<void> setBreakpoint(PDBbr);
   virtual PDBbr_list getBreakpointList() { return breakpoints; };
-  virtual boost::leaf::result<void> startDebug(std::string) { return {}; };
+  virtual boost::leaf::result<void> startDebug(const std::string &) {
+    return {};
+  };
   virtual boost::leaf::result<void> endDebug();
 
   virtual std::vector<std::string> readInput();
@@ -74,34 +76,4 @@ public:
   virtual boost::leaf::result<void>
   checkInput(const std::vector<std::string> &) const;
 };
-
-// LLVM lldb interface
-// class LLDBDebugger : public PDBDebugger {
-// private:
-//   /**
-//    * Terminal for detecting command end, defined in LLDBDebugger.cpp
-//    */
-//   static std::string term;
-
-//   // Leading \n is essential for lldb, it indicates end of input
-//   std::string makeCommand(std::string comm) { return comm += "\n"; };
-//   std::vector<std::string> stringifyInput(std::string);
-
-// public:
-//   using PDBDebugger::PDBbr_list;
-//   LLDBDebugger(std::string name, std::string opts = "")
-//       : PDBDebugger(name, opts) {};
-//   virtual ~LLDBDebugger() {};
-
-//   std::string getOptions() const { return exec_opts; };
-//   virtual boost::leaf::result<void> setBreakpoint(PDBbr);
-//   virtual PDBbr_list getBreakpointList() { return breakpoints; };
-//   virtual boost::leaf::result<void> startDebug(std::string) override;
-//   virtual boost::leaf::result<void> endDebug() override;
-
-//   virtual std::vector<std::string> readInput();
-
-//   virtual boost::leaf::result<void>
-//   checkInput(const std::vector<std::string> &) const;
-// };
 } // namespace pdb
