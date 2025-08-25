@@ -29,6 +29,7 @@ $ sudo apt update
 
 # Install the Boost development libraries
 $ sudo apt install libboost-all-dev
+
 # Install the LLVM 18 toolchain
 $ sudo apt install llvm-18-dev
 ```
@@ -41,6 +42,7 @@ $ brew upgrade
 
 # Install the Boost development libraries
 $ brew install boost
+
 # Install the LLVM 18 toolchain
 $ brew install llvm-18-dev
 ```
@@ -79,6 +81,7 @@ $ cd PDB && mkdir build && cd build
 # Check requirements and configure project
 $ cmake ..
 $ cmake --build .
+
 # Build docs (Doxygen required)
 $ make docs
 ```
