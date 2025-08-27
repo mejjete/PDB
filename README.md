@@ -71,7 +71,7 @@ $ brew install openmpi
 
 ## Building PDB
 
-To clone and build PDB run:
+To clone and build PDB:
 
 ```
 # Clone PDB
@@ -86,4 +86,14 @@ $ cmake --build .
 $ make docs
 ```
 
-If the PDB is built successfully, the executables located under the `{project_root}/build/bin` directory. The target PDB executable would be `./PDB` Have fun!!!
+The shown approach builds the entire PDB project, i.e front-end and back-end. PDB consists of 2 semi-independent parts, pdb_frontend (user interface) and pdb_backend (pdb server). Cmake controls which part is being build, it is either pdb_frontend, pdb_manager or both of them. By default, cmake configures the entire project to build, if no additional arguments supplied. It is possible to build them separately, if you're working on a particular part and not the whole project at once.  
+
+```
+# Building only front-end 
+$ cd build && cmake .. -DBUILD_FRONTEND=On -DBUILD_BACKEND=Off
+
+# Building only back-end 
+$ cd build && cmake .. -DBUILD_FRONTEND=Off -DBUILD_BACKEND=ON
+```
+
+If PDB is built successfully, the executables located under the `{project_root}/build/bin` directory. The target PDB executable would be `./PDB` Have fun!!!
