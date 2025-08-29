@@ -1,18 +1,13 @@
 #pragma once
 
 #include <PDBDebugger.hpp>
+#include <PDB_DWARF_Handlers.hpp>
 #include <algorithm>
 #include <boost/leaf.hpp>
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
-#include <llvm/DebugInfo/DWARF/DWARFContext.h>
-#include <llvm/DebugInfo/DWARF/DWARFDie.h>
-#include <llvm/DebugInfo/DWARF/DWARFUnit.h>
-#include <llvm/Object/ObjectFile.h>
-#include <llvm/Support/Error.h>
-#include <llvm/Support/MemoryBuffer.h>
 #include <memory>
 #include <poll.h>
 #include <stdexcept>
@@ -39,11 +34,6 @@ private:
   std::string temporal_file_name; // Temporal pipe for arguments passing
   std::string executable;         // User-supplied executable name
   pid_t exec_pid;                 // Executable PID process
-  std::unique_ptr<llvm::DWARFContext>
-      dwarf_context; // Object comprising of dwarf information on executable
-  std::unique_ptr<llvm::MemoryBuffer>
-      dwarf_mem_buf; // In-memory representation of an executable, needed for
-                     // dwarf_context to operate on
 
   // Debugger instances associated with each debugging process
   std::vector<std::unique_ptr<PDBDebugger>> pdb_proc;
@@ -85,7 +75,7 @@ public:
    *  second - full path of a source file of a function in question
    */
   boost::leaf::result<std::pair<uint64_t, std::string>>
-  getFunctionLocation(const std::string &func_name);
+  getFunctionLocation(const std::string &func_name) const;
 
   boost::leaf::result<void> setBreakpointsAll(PDBbr brpoint);
   boost::leaf::result<void> setBreakpoint(size_t proc, PDBbr brpoints);
@@ -118,28 +108,7 @@ PDBDebug<DebuggerType>::create(const std::string &start_rountine,
                                const std::string &debugger,
                                const std::string &exec) {
   PDBDebug debugInstance;
-
-  // Create and initialize in-memory representation of DWARF information
-  // containing in executable
-  auto expected_buffer = llvm::MemoryBuffer::getFile(exec);
-  if (!expected_buffer)
-    return boost::leaf::new_error<std::string>("Error reading executable");
-
-  auto expected_obj_file = llvm::object::ObjectFile::createObjectFile(
-      expected_buffer->get()->getMemBufferRef());
-  if (!expected_obj_file)
-    return boost::leaf::new_error<std::string>(
-        "Error creating in-memory executable object");
-
-  auto dwarf_context =
-      std::move(llvm::DWARFContext::create(**expected_obj_file));
-  if (!dwarf_context)
-    return boost::leaf::new_error<std::string>(
-        "Error initializing DWARF information");
-
   debugInstance.executable = exec;
-  debugInstance.dwarf_mem_buf = std::move(*expected_buffer);
-  debugInstance.dwarf_context = std::move(dwarf_context);
 
   // Tokenize command-line arguments
   auto pdb_routine_parsed =
@@ -413,59 +382,13 @@ PDBDebug<DebuggerType>::setBreakpoint(size_t proc, PDBbr brpoints) {
 template <typename DebuggerType>
 boost::leaf::result<std::vector<std::string>>
 PDBDebug<DebuggerType>::getSourceFiles() const {
-  std::vector<std::string> files;
-
-  for (const auto &CU : dwarf_context->compile_units()) {
-    if (!CU)
-      continue;
-    const auto *lt = dwarf_context->getLineTableForUnit(CU.get());
-    if (!lt)
-      continue;
-
-    for (const auto &entry : lt->Prologue.FileNames) {
-      std::string path;
-
-      if (entry.DirIdx > 0 &&
-          entry.DirIdx <= lt->Prologue.IncludeDirectories.size()) {
-        if (auto dir = lt->Prologue.IncludeDirectories[entry.DirIdx - 1]
-                           .getAsCString())
-          path = *dir;
-        path += "/";
-      }
-
-      if (auto name = entry.Name.getAsCString())
-        path += *name;
-
-      if (!path.empty())
-        files.push_back(path);
-    }
-  }
-
-  return files;
+  return dwarfGetSourceFiles(executable);
 }
 
 template <typename DebuggerType>
 boost::leaf::result<std::pair<uint64_t, std::string>>
-PDBDebug<DebuggerType>::getFunctionLocation(const std::string &func_name) {
-  for (const auto &CU : dwarf_context->compile_units()) {
-    for (const auto &entry : CU->dies()) {
-      llvm::DWARFDie die(CU.get(), &entry);
-
-      if (die.getTag() == llvm::dwarf::DW_TAG_subprogram) {
-        if (const char *name = die.getName(llvm::DINameKind::ShortName)) {
-          if (func_name == name) {
-            // Obtain function source file
-            std::string file_idx = die.getDeclFile(
-                llvm::DILineInfoSpecifier::FileLineInfoKind::RawValue);
-            // Obtain function line number
-            uint64_t file_line = die.getDeclLine();
-            return std::make_pair(file_line, file_idx);
-          }
-        }
-      }
-    }
-  }
-
-  return boost::leaf::new_error<std::string>("Unknown function: " + func_name);
+PDBDebug<DebuggerType>::getFunctionLocation(
+    const std::string &func_name) const {
+  return dwarfGetFunctionLocation(executable, func_name);
 }
 } // namespace pdb
