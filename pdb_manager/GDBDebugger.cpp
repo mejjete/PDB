@@ -10,19 +10,8 @@ namespace pdb {
 std::string GDBDebugger::term = "(gdb) ";
 
 std::vector<std::string> GDBDebugger::readInput() {
-  std::vector<std::string> main_buffer;
-
-  while (true) {
-    std::string iter = read();
-    if (iter == term)
-      break;
-
-    if (iter.length() == 0)
-      continue;
-
-    main_buffer.push_back(iter);
-  }
-  return main_buffer;
+  auto string_to_read = PDBProcess::read_queue.pull();
+  return std::vector<std::string>(1, "");
 }
 
 boost::leaf::result<void>

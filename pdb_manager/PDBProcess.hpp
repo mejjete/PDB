@@ -1,16 +1,11 @@
 #pragma once
 
-#include <atomic>
+#include <boost/asio.hpp>
 #include <boost/leaf.hpp>
+#include <boost/thread/sync_queue.hpp>
 #include <list>
 #include <memory>
-#include <mutex>
-#include <sstream>
 #include <string>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <thread>
 #include <unistd.h>
 #include <utility>
 
@@ -19,62 +14,7 @@ namespace pdb {
  * Process handler that creates connections to spawned processes.
  * Does not spawn any process by itself.
  */
-class PDBProcess {
-public:
-  /**
-   * Container represents an asynchronous stream from a read-end pipe. Among
-   * all, PDBProcess is also responsible for reading and writting commands to
-   * communication channels. This class solves this problem.
-   *
-   * It safely fetches input data from channel and provides interface for
-   * reading and writting. Also, it stringifies incoming data.
-   */
-  class StreamBuffer {
-  private:
-    std::mutex mut;
-
-    // First-in first-out buffer
-    std::list<std::string> stream_buffer;
-
-  public:
-    StreamBuffer() {};
-
-    // Number of lines ready to be fetched with get() method
-    size_t size() const { return stream_buffer.size(); };
-
-    // Returns 1 string per 1 call. If no string is available to read, returns
-    // ""
-    std::string get();
-
-    /**
-     * @param str - raw string
-     * Separates input string str by newline character and adds each string
-     * to FIFO buffer stream_buffer.
-     */
-    void add(const std::string &str);
-  };
-
-private:
-  int fd_read;
-  int fd_write;
-
-  // Protects read-end and write-end pipes
-  std::mutex file_mut;
-
-  // Data stream
-  std::shared_ptr<StreamBuffer> buffer;
-
-  // Controls when threads should exit
-  std::atomic<bool> thread_exec;
-
-  // File names for named pipes
-  std::string fd_read_name;
-  std::string fd_write_name;
-
-  // Thread that constantly polls read-end pipe to check if it has something to
-  // read
-  std::thread thread;
-
+class PDBProcess : std::enable_shared_from_this<PDBProcess> {
 public:
   PDBProcess();
   PDBProcess(const PDBProcess &) = delete;
@@ -89,7 +29,7 @@ public:
   };
   int openFIFO();
   int pollRead() const;
-  size_t size() const { return buffer->size(); };
+  size_t size() const;
 
 protected:
   // Issues a read from a process read-end pipe
@@ -97,5 +37,24 @@ protected:
 
   // Issues a write to a process write-end pipe
   void write(const std::string &);
+
+  boost::sync_queue<std::string> read_queue;
+
+private:
+  int fd_read;
+  int fd_write;
+
+  boost::asio::io_context io_context;
+
+  boost::asio::posix::stream_descriptor fd_read_desc;
+  boost::asio::posix::stream_descriptor fd_write_desc;
+  std::array<char, 4096> local_buffer;
+
+  // File names for named pipes
+  std::string fd_read_name;
+  std::string fd_write_name;
+
+  std::thread child;
+  std::thread reader;
 };
 } // namespace pdb

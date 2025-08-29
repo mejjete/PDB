@@ -49,7 +49,7 @@ public:
   ~PDBDebug();
 
   /**
-   * @param start_routine - should specify the compiler instance and
+   * @param start_routine - specify the compiler instance and
    * target-specific flags [example] : "mpirun -oversubscribe -np 4"
    * @param debugger - path to debugger
    * @param exec - user-supplied executable
@@ -64,7 +64,6 @@ public:
   /**
    *  @return On success, return vector of strings, each containing full path
    *  to every source file recorded in executable.
-   *  On error, return an error string
    */
   boost::leaf::result<std::vector<std::string>> getSourceFiles() const;
 
@@ -86,7 +85,7 @@ public:
   /**
    * @param usec - miliseconds to wait to terminate all processes
    *
-   * Must be called to properly terminate calling process. Returns pair of
+   * Must be called to properly terminate calling process. Return pair of
    * values describing main process exit status. .first - holds 1 if child has
    * terminated and 0 otherwise .second - holds exit code of a child
    *

@@ -33,24 +33,24 @@ void PDBcommand(Debugger &pdb_instance) {
                "------------\n";
 
   // Set up a breakpoint
-  std::cout << "Setting breakpoint at: " << function->second << ":"
-            << function->first << std::endl;
-  Debugger::PDBbr br(function->first, function->second);
-  auto br_result = pdb_instance.setBreakpointsAll(br);
+  // std::cout << "Setting breakpoint at: " << function->second << ":"
+  //           << function->first << std::endl;
+  // Debugger::PDBbr br(function->first, function->second);
+  // auto br_result = pdb_instance.setBreakpointsAll(br);
 
-  if (br_result) {
-    std::cout << "\033[92mBreakpoints set at: " << function->second << ":"
-              << function->first << "\033[0m\n";
-  } else {
-    std::cout << "\033[92mError setting breakpoints at: " << function->second
-              << ":" << function->first << "\033[0m\n";
-  }
+  // if (br_result) {
+  //   std::cout << "\033[92mBreakpoints set at: " << function->second << ":"
+  //             << function->first << "\033[0m\n";
+  // } else {
+  //   std::cout << "\033[92mError setting breakpoints at: " << function->second
+  //             << ":" << function->first << "\033[0m\n";
+  // }
 }
 
 int main() {
   using namespace pdb;
   auto debug =
-      Debugger::create("mpirun -np 4", "/usr/bin/gdb", "./mpi_test.out");
+      Debugger::create("mpirun -np 1", "/usr/bin/gdb", "./mpi_test.out");
   PDBcommand(*debug);
   return 0;
 }
