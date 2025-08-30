@@ -33,7 +33,22 @@ void GDBDebugger::setBreakpoint(PDBbr brpoint) {
   if (brpoint.second.length() == 0)
     throw std::logic_error("Error setting breakpoint in unknown file");
 
-  // If breakpoint has not been set yet, add it to breakpoint list
+  // Check if breakpoint is already set
+  bool br_found = false;
+
+  for (auto &brs : breakpoints) {
+    if (brs.first == brpoint.second) {
+      brs.second.push_back(brpoint.first);
+      br_found = true;
+    }
+  }
+
+  if (br_found) {
+    std::string brLocation =
+        brpoint.second + ":" + std::to_string(brpoint.first);
+    throw std::logic_error("Breakpoint is already set at: " + brLocation);
+  }
+
   std::string command =
       makeCommand("b " + brpoint.second + ":" + std::to_string(brpoint.first));
   submitCommand(command);
@@ -81,18 +96,7 @@ void GDBDebugger::setBreakpoint(PDBbr brpoint) {
                            ":" + std::to_string(brpoint.first));
   }
 
-  // If status contains address, we successfully set up a breakpoint, now add it
-  // to list
-  bool br_found = false;
-
-  for (auto &source_files : breakpoints) {
-    if (source_files.first == brpoint.second) {
-      source_files.second.push_back(brpoint.first);
-      br_found = true;
-    }
-  }
-
-  // Add it as new pair
+  // Add a new breakpoint to the list
   if (br_found != true) {
     breakpoints.push_back(
         std::make_pair(brpoint.second, std::vector<int>(1, brpoint.first)));
