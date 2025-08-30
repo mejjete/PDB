@@ -51,7 +51,7 @@ public:
    * @param exec - user-supplied executable
    *
    * PDBDebug<GDBDebugger>("mpirun -np 4 -oversubscribe", "/usr/bin/gdb",
-   * "./mpi_test.out", "arg1, arg2, arg3");
+   * "./mpi_test.out");
    */
   PDBDebug(const std::string &start_rountine, const std::string &debugger,
            const std::string &exec);
@@ -74,8 +74,13 @@ public:
   void setBreakpointsAll(PDBbr brpoint);
   void setBreakpoint(size_t proc, PDBbr brpoints);
 
-  void startDebug() {};
-  void endDebug() {};
+  void startDebug(const std::string &args);
+  void endDebug();
+
+  bool isAllRunning() const;
+
+  std::pair<std::size_t, std::string>
+  getProcCurrentPosition(std::size_t proc_num);
 
   /**
    * @param usec - miliseconds to wait to terminate all processes
@@ -361,5 +366,37 @@ std::pair<uint64_t, std::string> PDBDebug<DebuggerType>::getFunctionLocation(
     const std::string &func_name) const {
   auto result = dwarfGetFunctionLocation(executable, func_name);
   return *result;
+}
+
+template <typename DebuggerType>
+void PDBDebug<DebuggerType>::startDebug(const std::string &args) {
+  for (auto &iter : pdb_proc) {
+    iter->startDebug(args);
+  }
+}
+
+template <typename DebuggerType> void PDBDebug<DebuggerType>::endDebug() {
+  for (auto &iter : pdb_proc) {
+    iter->endDebug();
+  }
+}
+
+template <typename DebuggerType>
+bool PDBDebug<DebuggerType>::isAllRunning() const {
+  for (auto &i : pdb_proc) {
+    if (!i->getCurrentStatus())
+      return false;
+  }
+  return true;
+}
+
+template <typename DebuggerType>
+std::pair<std::size_t, std::string>
+PDBDebug<DebuggerType>::getProcCurrentPosition(std::size_t proc_num) {
+  if (pdb_proc.size() < proc_num)
+    throw std::logic_error("Invalid process identifier: " + proc_num);
+
+  auto &proc = pdb_proc[proc_num];
+  return proc->getCurrentPosition();
 }
 } // namespace pdb

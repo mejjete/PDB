@@ -10,8 +10,48 @@ namespace pdb {
 std::string GDBDebugger::term = "(gdb) ";
 
 std::vector<std::string> GDBDebugger::readInput() {
-  // Fetch all lines from input until we get the terminating symbol in gdb
-  return fetchByLinesUntil(term);
+  // Fetch all lines from input until we get the terminating symbol
+  auto result = fetchByLinesUntil(term);
+
+  // Update status and internal state
+  for (auto &i : result) {
+    // Check whether we started an application
+    if (i.find("^running") != std::string::npos)
+      isRunning = true;
+
+    if (i.find("*stopped") != std::string::npos) {
+      // Get exact current breakpoint file
+      auto fullNameStart = i.find("fullname=\"");
+      if (fullNameStart == std::string::npos)
+        throw std::runtime_error("Invalid debugger output");
+
+      auto fullNameEnd =
+          std::find(i.begin() + fullNameStart + 11, i.end(), '\"');
+      if (fullNameEnd == i.end())
+        throw std::runtime_error("Invalid debugger output");
+
+      std::string fullPath(i.begin() + fullNameStart + 11, fullNameEnd);
+
+      // Get exact current breakpoint line number
+      auto lineStart = i.find("line=\"");
+      if (lineStart == std::string::npos)
+        throw std::runtime_error("Invalid debugger output");
+
+      auto lineEnd = std::find(i.begin() + lineStart + 7, i.end(), '\"');
+      if (lineEnd == i.end())
+        throw std::runtime_error("Invalid debugger output");
+
+      std::string lineNumberStr(i.begin() + lineStart + 7, lineEnd);
+      std::size_t lineNumber =
+          static_cast<std::size_t>(std::atoi(lineNumberStr.c_str()));
+
+      // Validate source file position
+      currentFile = fullPath;
+      currentLine = lineNumber;
+    };
+  }
+
+  return result;
 }
 
 void GDBDebugger::checkInput(const std::vector<std::string> &str) const {
@@ -26,7 +66,39 @@ void GDBDebugger::endDebug() {
   submitCommand(command);
 
   // Skip whatever gdb has left on stdout just to let it exit peacefully
-  fetchByLinesUntil(term);
+  readInput();
+  isRunning = false;
+}
+
+void GDBDebugger::startDebug(const std::string &args) {
+  auto command = makeCommand("r " + args);
+  submitCommand(command);
+
+  auto result = readInput();
+  checkInput(result);
+
+  for (auto &iter : result) {
+    if (iter[0] == '^') {
+      if (iter.find("error") != std::string::npos)
+        throw std::logic_error("Error starting debugging");
+    }
+
+    if (iter.find("^done") != std::string::npos)
+      return;
+  }
+
+  // To get to the breakpoint
+  result = readInput();
+  for (auto &iter : result) {
+    if (iter.find("error") != std::string::npos)
+      throw std::runtime_error("Debugging error");
+
+    if (iter.find("*stopped") != std::string::npos &&
+        iter.find("breakpoint-hit") == std::string::npos)
+      throw std::runtime_error("Unable to start debugging");
+  }
+
+  isRunning = true;
 }
 
 void GDBDebugger::setBreakpoint(PDBbr brpoint) {

@@ -15,9 +15,18 @@ void infoCommand(const std::vector<std::string> &command,
 
 void PDBcommand(Debugger &pdb_instance) {
   std::string command;
+  char *new_buffer = new char[200];
+  std::string current_path = "X";
+  std::string current_line = "X";
+
   do {
     try {
-      std::cout << "(pdb) ";
+      int proc_num = pdb_instance.size();
+      int written = sprintf(new_buffer, "[%d ; %s:%s] ", proc_num,
+                            current_path.c_str(), current_line.c_str());
+
+      std::string status_bar(new_buffer, new_buffer + written);
+      std::cout << "(pdb) " + status_bar;
       std::getline(std::cin, command);
 
       std::stringstream sstream(command);
@@ -32,6 +41,19 @@ void PDBcommand(Debugger &pdb_instance) {
         infoCommand(comm_parsed, pdb_instance);
       } else if (command == "q") {
         break;
+      } else if (command == "r") {
+        std::string args;
+        for (auto i = std::next(comm_parsed.begin()); i < comm_parsed.end();
+             i++) {
+          args += *i;
+        }
+        pdb_instance.startDebug(args);
+        if (pdb_instance.isAllRunning()) {
+          std::cout << "(pdb) Running..." << std::endl;
+          auto position = pdb_instance.getProcCurrentPosition(0);
+          current_line = std::to_string(position.first);
+          current_path = position.second;
+        }
       } else {
         throw std::logic_error("Invalid command: " + comm_parsed[0]);
       }

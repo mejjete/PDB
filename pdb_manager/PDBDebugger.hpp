@@ -13,9 +13,13 @@ public:
 
 protected:
   PDBbr_list breakpoints;
+  bool isRunning;
+  std::size_t currentLine;
+  std::string currentFile;
+  std::string currentFunction;
 
 public:
-  PDBDebugger() {};
+  PDBDebugger() : isRunning(false) {};
   PDBDebugger(const PDBDebugger &) = delete;
   PDBDebugger(PDBDebugger &&) = default;
   virtual ~PDBDebugger() {};
@@ -37,6 +41,17 @@ public:
 
   // Default set of options being passed to a debugger
   static std::string getDefaultOptions() { return ""; };
+
+  virtual bool getCurrentStatus() const { return isRunning; };
+
+  virtual std::pair<std::size_t, std::string> getCurrentPosition() const {
+    if (!isRunning) {
+      throw std::logic_error("Cannot get the current source file position. The "
+                             "debugging is not started");
+    }
+
+    return std::make_pair(currentLine, currentFile);
+  }
 };
 
 // GNU gdb interface
@@ -59,7 +74,7 @@ public:
 
   virtual void setBreakpoint(PDBbr);
   virtual PDBbr_list getBreakpointList() { return breakpoints; };
-  virtual void startDebug(const std::string &) {};
+  virtual void startDebug(const std::string &);
   virtual void endDebug();
   virtual std::vector<std::string> readInput();
 
