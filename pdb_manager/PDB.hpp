@@ -3,7 +3,6 @@
 #include <PDBDebugger.hpp>
 #include <PDB_DWARF_Handlers.hpp>
 #include <algorithm>
-#include <boost/leaf.hpp>
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
@@ -26,9 +25,6 @@ namespace pdb {
  *  Main Debug instance which communicates with UI
  */
 template <typename DebuggerType> class PDBDebug {
-protected:
-  PDBDebug() {};
-
 private:
   int temporal_file; // File used to pass arguments through PDB runtime
   std::string temporal_file_name; // Temporal pipe for arguments passing
@@ -57,15 +53,14 @@ public:
    * PDBDebug<GDBDebugger>("mpirun -np 4 -oversubscribe", "/usr/bin/gdb",
    * "./mpi_test.out", "arg1, arg2, arg3");
    */
-  static boost::leaf::result<PDBDebug> create(const std::string &start_rountine,
-                                              const std::string &debugger,
-                                              const std::string &exec);
+  PDBDebug(const std::string &start_rountine, const std::string &debugger,
+           const std::string &exec);
 
   /**
    *  @return On success, return vector of strings, each containing full path
    *  to every source file recorded in executable.
    */
-  boost::leaf::result<std::vector<std::string>> getSourceFiles() const;
+  std::vector<std::string> getSourceFiles() const;
 
   /**
    *  @param func_name - name of the function in question
@@ -73,11 +68,11 @@ public:
    *  first - location of a function in a source file (line)
    *  second - full path of a source file of a function in question
    */
-  boost::leaf::result<std::pair<uint64_t, std::string>>
+  std::pair<uint64_t, std::string>
   getFunctionLocation(const std::string &func_name) const;
 
-  boost::leaf::result<void> setBreakpointsAll(PDBbr brpoint);
-  boost::leaf::result<void> setBreakpoint(size_t proc, PDBbr brpoints);
+  void setBreakpointsAll(PDBbr brpoint);
+  void setBreakpoint(size_t proc, PDBbr brpoints);
 
   void startDebug() {};
   void endDebug() {};
@@ -93,7 +88,7 @@ public:
    * by high-level routines to wait until process termination or just kill it by
    * calling destructor
    */
-  boost::leaf::result<std::pair<int, int>> join(useconds_t usec = 1000000);
+  std::pair<int, int> join(useconds_t usec = 1000000);
 
   /**
    * Return number of active processes
@@ -102,12 +97,10 @@ public:
 };
 
 template <typename DebuggerType>
-boost::leaf::result<PDBDebug<DebuggerType>>
-PDBDebug<DebuggerType>::create(const std::string &start_rountine,
-                               const std::string &debugger,
-                               const std::string &exec) {
-  PDBDebug debugInstance;
-  debugInstance.executable = exec;
+PDBDebug<DebuggerType>::PDBDebug(const std::string &start_rountine,
+                                 const std::string &debugger,
+                                 const std::string &exec) {
+  executable = exec;
 
   // Tokenize command-line arguments
   auto pdb_routine_parsed =
@@ -124,52 +117,48 @@ PDBDebug<DebuggerType>::create(const std::string &start_rountine,
     iter =
         std::find(pdb_routine_parsed.begin(), pdb_routine_parsed.end(), "-n");
     if (iter == pdb_routine_parsed.end())
-      return boost::leaf::new_error<std::string>("Missing -np/-n option");
+      throw std::runtime_error("Missing -np/-n option");
   }
 
   iter = std::next(iter);
   if (iter == pdb_routine_parsed.end())
-    return boost::leaf::new_error<std::string>(
-        "Number of processes not provided");
+    throw std::runtime_error("Number of processes not provided");
 
   proc_count = std::atoi(iter->c_str());
   if (proc_count <= 0)
-    return boost::leaf::new_error<std::string>(
-        "Invalid number of MPI processes");
+    throw std::runtime_error("Invalid number of MPI processes");
 
   // Create temporal file to pass name of pipe
   char temp_file[] = "/tmp/pdbpipeXXXXXXX";
-  debugInstance.temporal_file = mkstemp(temp_file);
-  if (debugInstance.temporal_file < 0)
-    return boost::leaf::new_error<std::string>(
-        std::string("Error opening temporal file: ") + temp_file);
+  temporal_file = mkstemp(temp_file);
+  if (temporal_file < 0)
+    throw std::runtime_error(std::string("Error opening temporal file: ") +
+                             temp_file);
 
-  close(debugInstance.temporal_file);
+  close(temporal_file);
   unlink(temp_file);
-  debugInstance.temporal_file =
+  temporal_file =
       open(temp_file, O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO);
 
-  if (debugInstance.temporal_file < 0)
-    return boost::leaf::new_error<std::string>(
-        std::string("Error opening temporal file: ") + temp_file);
-  debugInstance.temporal_file_name = temp_file;
+  if (temporal_file < 0)
+    throw std::runtime_error(std::string("Error opening temporal file: ") +
+                             temp_file);
+  temporal_file_name = temp_file;
 
   // Create specified number of process handlers
   std::vector<std::string> proc_name_files;
-  debugInstance.pdb_proc.reserve(proc_count);
+  pdb_proc.reserve(proc_count);
 
   for (int i = 0; i < proc_count; i++) {
-    debugInstance.pdb_proc.emplace_back(std::make_unique<DebuggerType>());
-    auto proc_filenames = debugInstance.pdb_proc[i]->getPipeNames();
+    pdb_proc.emplace_back(std::make_unique<DebuggerType>());
+    auto proc_filenames = pdb_proc[i]->getPipeNames();
 
     // Memorize pipe names
     proc_name_files.push_back(proc_filenames.first);
     proc_name_files.push_back(proc_filenames.second);
 
-    write(debugInstance.temporal_file, proc_filenames.first.c_str(),
-          PDB_PIPE_LENGTH);
-    write(debugInstance.temporal_file, proc_filenames.second.c_str(),
-          PDB_PIPE_LENGTH);
+    write(temporal_file, proc_filenames.first.c_str(), PDB_PIPE_LENGTH);
+    write(temporal_file, proc_filenames.second.c_str(), PDB_PIPE_LENGTH);
   }
 
   /**
@@ -237,8 +226,8 @@ PDBDebug<DebuggerType>::create(const std::string &start_rountine,
   new_argv[new_arg_size] = NULL;
 
   // Spawn process
-  debugInstance.exec_pid = fork();
-  if (debugInstance.exec_pid == 0) {
+  exec_pid = fork();
+  if (exec_pid == 0) {
     close(STDOUT_FILENO);
     close(STDIN_FILENO);
     close(STDERR_FILENO);
@@ -247,7 +236,7 @@ PDBDebug<DebuggerType>::create(const std::string &start_rountine,
     first_exec.push_back(0);
 
     if (execvp(first_exec.c_str(), new_argv) < 0)
-      return boost::leaf::new_error<std::string>("execvp error");
+      throw std::runtime_error("execvp error");
   }
 
   // After exec, we can finally free argument string
@@ -262,17 +251,13 @@ PDBDebug<DebuggerType>::create(const std::string &start_rountine,
    * The following open() calls should be synchronized with the same open() in
    * a child.
    */
-  for (auto &proc : debugInstance.pdb_proc)
+  for (auto &proc : pdb_proc)
     proc->openFIFO();
 
   // Read out initial print from gdb to clear input for subsequent commands
-  for (auto &proc : debugInstance.pdb_proc) {
-    auto check = proc->checkInput(proc->readInput());
-    if (!check)
-      boost::leaf::new_error<std::string>("Error happens");
+  for (auto &proc : pdb_proc) {
+    proc->checkInput(proc->readInput());
   }
-
-  return debugInstance;
 }
 
 template <typename DebuggerType> PDBDebug<DebuggerType>::~PDBDebug() {
@@ -293,8 +278,7 @@ template <typename DebuggerType> PDBDebug<DebuggerType>::~PDBDebug() {
 }
 
 template <typename DebuggerType>
-boost::leaf::result<std::pair<int, int>>
-PDBDebug<DebuggerType>::join(useconds_t usec) {
+std::pair<int, int> PDBDebug<DebuggerType>::join(useconds_t usec) {
   for (auto &iter : pdb_proc)
     iter->endDebug();
 
@@ -304,8 +288,7 @@ PDBDebug<DebuggerType>::join(useconds_t usec) {
   int statlock;
   pid_t pid = waitpid(exec_pid, &statlock, WNOHANG);
   if (pid < 0) {
-    return boost::leaf::new_error<std::string>(
-        "Error waiting for main process");
+    throw std::runtime_error("Error waiting for main process");
   } else if (pid == 0)
     return std::make_pair(0, 0); // If process has not terminated yet, do
                                  // nothing, destructor will kill it
@@ -348,44 +331,35 @@ PDBDebug<DebuggerType>::parseArgs(const std::string &pdb_args,
 }
 
 template <typename DebuggerType>
-boost::leaf::result<void>
-PDBDebug<DebuggerType>::setBreakpointsAll(PDBbr brpoint) {
+void PDBDebug<DebuggerType>::setBreakpointsAll(PDBbr brpoint) {
   if (pdb_proc.size() == 0)
-    return boost::leaf::new_error<std::string>(
-        "PDB: Invalid number of processes: 0");
+    throw std::runtime_error("Invalid process identifier: 0");
 
-  for (auto &iter : pdb_proc) {
-    auto result = iter->setBreakpoint(brpoint);
-    if (!result)
-      return result;
-  }
-  return {};
+  for (auto &iter : pdb_proc)
+    iter->setBreakpoint(brpoint);
 }
 
 template <typename DebuggerType>
-boost::leaf::result<void>
-PDBDebug<DebuggerType>::setBreakpoint(size_t proc, PDBbr brpoints) {
-  if (proc >= pdb_proc.size())
-    return boost::leaf::new_error<std::string>(
-        "PDB: Invalid process identifier: " + std::to_string(proc));
+void PDBDebug<DebuggerType>::setBreakpoint(size_t proc, PDBbr brpoints) {
+  if (proc >= pdb_proc.size()) {
+    throw std::runtime_error("Invalid process identifier: " +
+                             std::to_string(proc));
+  }
 
   auto &ptr = pdb_proc[proc];
-  auto result = ptr->setBreakpoint(brpoints);
-  if (!result)
-    return result;
-  return {};
+  ptr->setBreakpoint(brpoints);
 }
 
 template <typename DebuggerType>
-boost::leaf::result<std::vector<std::string>>
-PDBDebug<DebuggerType>::getSourceFiles() const {
-  return dwarfGetSourceFiles(executable);
+std::vector<std::string> PDBDebug<DebuggerType>::getSourceFiles() const {
+  auto result = dwarfGetSourceFiles(executable);
+  return *result;
 }
 
 template <typename DebuggerType>
-boost::leaf::result<std::pair<uint64_t, std::string>>
-PDBDebug<DebuggerType>::getFunctionLocation(
+std::pair<uint64_t, std::string> PDBDebug<DebuggerType>::getFunctionLocation(
     const std::string &func_name) const {
-  return dwarfGetFunctionLocation(executable, func_name);
+  auto result = dwarfGetFunctionLocation(executable, func_name);
+  return *result;
 }
 } // namespace pdb

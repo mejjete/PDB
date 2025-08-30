@@ -65,44 +65,31 @@ void brCommand(const std::vector<std::string> &commands,
   }
 
   Debugger::PDBbr br(static_cast<std::size_t>(filePos), fileName);
-  auto br_result = pdb_instance.setBreakpointsAll(br);
-  if (!br_result) {
-    throw std::logic_error("\033[92mError setting breakpoints at: " + fileName +
-                           ":" + pos + "\033[0m");
-  } else {
-    std::cout << "\033[92mBreakpoints set at: " << fileName << ":" << pos
-              << "\033[0m\n";
-  }
+  pdb_instance.setBreakpointsAll(br);
+  std::cout << "\033[92mBreakpoints set at: " << fileName << ":" << pos
+            << "\033[0m\n";
 }
 
 void infoCommand(const std::vector<std::string> &command,
                  Debugger &pdb_instance) {
   if (command[1] == "sources") {
-    auto source_array = pdb_instance.getSourceFiles();
-    if (source_array->size() == 0) {
-      throw std::logic_error("No source file information");
-    }
+    auto source_list = pdb_instance.getSourceFiles();
 
-    for (auto &iter : *source_array) {
+    for (auto &iter : source_list) {
       printf("\033[92m%s\033[0m,", iter.c_str());
       std::cout << std::endl;
     }
   } else if (command[1] == "func") {
     std::string func_in_question = command[2];
     auto function = pdb_instance.getFunctionLocation(func_in_question);
-    if (!function) {
-      throw std::logic_error("Unknown function: " + func_in_question);
-    } else {
-      std::cout << "\033[92m" << function->second << "\033[0m" << ":";
-      std::cout << "\033[92m" << function->first << "\033[0m" << std::endl;
-    }
+    std::cout << "\033[92m" << function.second << "\033[0m" << ":";
+    std::cout << "\033[92m" << function.first << "\033[0m" << std::endl;
   }
 };
 
 int main() {
   using namespace pdb;
-  auto debug =
-      Debugger::create("mpirun -np 1", "/usr/bin/gdb", "./mpi_test.out");
-  PDBcommand(*debug);
+  auto debug = Debugger("mpirun -np 1", "/usr/bin/gdb", "./mpi_test.out");
+  PDBcommand(debug);
   return 0;
 }

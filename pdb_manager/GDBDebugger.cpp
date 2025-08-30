@@ -14,46 +14,24 @@ std::vector<std::string> GDBDebugger::readInput() {
   return fetchByLinesUntil(term);
 }
 
-boost::leaf::result<void>
-GDBDebugger::checkInput(const std::vector<std::string> &str) const {
+void GDBDebugger::checkInput(const std::vector<std::string> &str) const {
   for (auto &iter : str) {
     if (iter.find("No debugging symbols found") != std::string::npos)
-      return boost::leaf::new_error<std::string>("No debugging symbols found");
+      throw std::runtime_error("No debugging symbols found");
   }
-  return {};
 }
 
-boost::leaf::result<void> GDBDebugger::endDebug() {
+void GDBDebugger::endDebug() {
   std::string command = makeCommand("quit");
   submitCommand(command);
 
   // Skip whatever gdb has left on stdout just to let it exit peacefully
-  // read();
-  return {};
+  fetchByLinesUntil(term);
 }
 
-boost::leaf::result<void> GDBDebugger::setBreakpoint(PDBbr brpoint) {
+void GDBDebugger::setBreakpoint(PDBbr brpoint) {
   if (brpoint.second.length() == 0)
-    return boost::leaf::new_error<std::string>(
-        "Error setting breakpoint in unknown file");
-
-  bool br_found = false;
-
-  // Check if we have already set up this breakpoint
-  for (auto &source_files : breakpoints) {
-    if (source_files.first == brpoint.second) {
-      auto br = std::find(source_files.second.begin(),
-                          source_files.second.end(), brpoint.first);
-      if (br != source_files.second.end()) {
-        br_found = true;
-        break;
-      }
-    }
-  }
-
-  // If breakpoint is already set on given position, return
-  if (br_found == true)
-    return {};
+    throw std::logic_error("Error setting breakpoint in unknown file");
 
   // If breakpoint has not been set yet, add it to breakpoint list
   std::string command =
@@ -61,9 +39,7 @@ boost::leaf::result<void> GDBDebugger::setBreakpoint(PDBbr brpoint) {
   submitCommand(command);
 
   auto result = readInput();
-  auto check = checkInput(result);
-  if (!check)
-    return check;
+  checkInput(result);
 
   /**
    * At this moment, we may want to check output from "br" command
@@ -72,9 +48,9 @@ boost::leaf::result<void> GDBDebugger::setBreakpoint(PDBbr brpoint) {
    * before "^done" on more detailed information if so exist
    */
   if (strstr(result[1].c_str(), "No source file") != NULL) {
-    return boost::leaf::new_error<std::string>(
-        "PDB: Cannot set breakpoint at specified location: " + brpoint.second +
-        ":" + std::to_string(brpoint.first));
+    throw std::logic_error(
+        "Cannot set breakpoint at specified location: " + brpoint.second + ":" +
+        std::to_string(brpoint.first));
   }
 
   // Find string that starts with "=breakpoint-created"
@@ -94,22 +70,20 @@ boost::leaf::result<void> GDBDebugger::setBreakpoint(PDBbr brpoint) {
 
   // Return an error if we failed to parse command
   if (strstr(token, "addr") == NULL) {
-    return boost::leaf::new_error<std::string>(
-        "PDB: Failed parsing <br " + brpoint.second + ":" +
-        std::to_string(brpoint.first) + ">");
+    throw std::logic_error("Failed parsing <br " + brpoint.second + ":" +
+                           std::to_string(brpoint.first) + ">");
   }
 
   // If breakpoint has status "PENDING", it means we cannot obtain its
   // information from executable
   if (strstr(token, "<PENDING>") != NULL) {
-    return boost::leaf::new_error<std::string>(
-        "PDB: Cannot set breakpoint at specified location: " + brpoint.second +
-        ":" + std::to_string(brpoint.first));
+    throw std::logic_error("Breakpoint is already set at: " + brpoint.second +
+                           ":" + std::to_string(brpoint.first));
   }
 
   // If status contains address, we successfully set up a breakpoint, now add it
   // to list
-  br_found = false;
+  bool br_found = false;
 
   for (auto &source_files : breakpoints) {
     if (source_files.first == brpoint.second) {
@@ -119,10 +93,9 @@ boost::leaf::result<void> GDBDebugger::setBreakpoint(PDBbr brpoint) {
   }
 
   // Add it as new pair
-  if (br_found != true)
+  if (br_found != true) {
     breakpoints.push_back(
         std::make_pair(brpoint.second, std::vector<int>(1, brpoint.first)));
-
-  return {};
+  }
 }
 } // namespace pdb

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <PDBProcess.hpp>
-#include <boost/leaf.hpp>
 #include <list>
 #include <string>
 #include <vector>
@@ -29,13 +28,12 @@ public:
    * runtime
    * @return On error, throws std::runtime_error
    */
-  virtual boost::leaf::result<void> startDebug(const std::string &args) = 0;
-  virtual boost::leaf::result<void> endDebug() = 0;
-  virtual boost::leaf::result<void> setBreakpoint(PDBbr brpoint) = 0;
+  virtual void startDebug(const std::string &args) = 0;
+  virtual void endDebug() = 0;
+  virtual void setBreakpoint(PDBbr brpoint) = 0;
   virtual std::vector<std::string> readInput() = 0;
 
-  virtual boost::leaf::result<void>
-  checkInput(const std::vector<std::string> &) const = 0;
+  virtual void checkInput(const std::vector<std::string> &) const = 0;
 
   // Default set of options being passed to a debugger
   static std::string getDefaultOptions() { return ""; };
@@ -59,16 +57,13 @@ public:
   GDBDebugger() {};
   virtual ~GDBDebugger() {};
 
-  virtual boost::leaf::result<void> setBreakpoint(PDBbr);
+  virtual void setBreakpoint(PDBbr);
   virtual PDBbr_list getBreakpointList() { return breakpoints; };
-  virtual boost::leaf::result<void> startDebug(const std::string &) {
-    return {};
-  };
-  virtual boost::leaf::result<void> endDebug();
+  virtual void startDebug(const std::string &) {};
+  virtual void endDebug();
   virtual std::vector<std::string> readInput();
 
-  virtual boost::leaf::result<void>
-  checkInput(const std::vector<std::string> &) const;
+  virtual void checkInput(const std::vector<std::string> &) const;
 
   static std::string getDefaultOptions() { return "-q --interpreter=mi2"; };
 };
