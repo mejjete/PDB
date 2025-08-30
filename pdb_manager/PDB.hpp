@@ -262,10 +262,8 @@ PDBDebug<DebuggerType>::create(const std::string &start_rountine,
    * The following open() calls should be synchronized with the same open() in
    * a child.
    */
-  for (auto &proc : debugInstance.pdb_proc) {
-    if (proc->openFIFO() < 0)
-      return boost::leaf::new_error<std::string>("error opening FIFO");
-  }
+  for (auto &proc : debugInstance.pdb_proc)
+    proc->openFIFO();
 
   // Read out initial print from gdb to clear input for subsequent commands
   for (auto &proc : debugInstance.pdb_proc) {

@@ -27,9 +27,7 @@ public:
   std::pair<int, int> getPipe() const {
     return std::make_pair(fd_read, fd_write);
   };
-  int openFIFO();
-  int pollRead() const;
-  size_t size() const;
+  void openFIFO();
 
 protected:
   // Read a read-end pipe until tm

@@ -7,45 +7,97 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-// bool is_signaled = false;
 using Debugger = pdb::PDBDebug<pdb::GDBDebugger>;
 
+void brCommand(const std::vector<std::string> &command, Debugger &pdb_instance);
+void infoCommand(const std::vector<std::string> &command,
+                 Debugger &pdb_instance);
+
 void PDBcommand(Debugger &pdb_instance) {
-  std::cout << "All Source Files: \n";
+  std::string command;
+  do {
+    try {
+      std::cout << "(pdb) ";
+      std::getline(std::cin, command);
 
-  // Print out the full information about source files
-  auto source_array = pdb_instance.getSourceFiles();
-  for (auto &iter : *source_array) {
-    printf("\033[92m%s\033[0m,", iter.c_str());
-    std::cout << std::endl;
+      std::stringstream sstream(command);
+      std::vector<std::string> comm_parsed;
+      std::string temp;
+      while (sstream >> temp)
+        comm_parsed.push_back(temp);
+
+      if (comm_parsed[0] == "b") {
+        brCommand(comm_parsed, pdb_instance);
+      } else if (comm_parsed[0] == "info" && comm_parsed.size() > 1) {
+        infoCommand(comm_parsed, pdb_instance);
+      } else if (command == "q") {
+        break;
+      } else {
+        throw std::logic_error("Invalid command: " + comm_parsed[0]);
+      }
+    } catch (std::runtime_error &re) { // Fatal error
+      std::cout << "Fatal error: " << re.what() << std::endl;
+      std::cout << "Terminating..." << std::endl;
+      break;
+    } catch (std::logic_error &le) { // Logic error
+      std::cout << le.what() << std::endl;
+    }
+  } while (true);
+}
+
+void brCommand(const std::vector<std::string> &commands,
+               Debugger &pdb_instance) {
+  if (commands.size() != 2) {
+    throw std::logic_error("Invalid number of arguments: " +
+                           std::to_string(commands.size()));
   }
-  std::cout << "---------------------------------------------------------------"
-               "------------\n";
 
-  // Print out information about given function std::string func = "main";
-  std::string func_in_question = "main";
-  auto function = pdb_instance.getFunctionLocation(func_in_question);
-  std::cout << "Function: " << func_in_question << std::endl;
-  std::cout << "\033[92mSource File: " << function->second << "\033[0m"
-            << std::endl;
-  std::cout << "\033[92mLine: " << function->first << "\033[0m" << std::endl;
-  std::cout << "---------------------------------------------------------------"
-               "------------\n";
+  auto delim = commands[1].find(':');
+  if (delim == std::string::npos) {
+    throw std::logic_error("Invalid breakpoint location: " + commands[1]);
+  }
 
-  // Set up a breakpoint
-  std::cout << "Setting breakpoint at: " << function->second << ":"
-            << function->first << std::endl;
-  Debugger::PDBbr br(function->first, function->second);
+  std::string fileName = commands[1].substr(0, delim);
+  std::string pos = commands[1].substr(delim + 1, commands[1].length() - delim);
+  int filePos = std::atoi(pos.c_str());
+  if (filePos < 0) {
+    throw std::logic_error("Invalid line number: " + pos);
+  }
+
+  Debugger::PDBbr br(static_cast<std::size_t>(filePos), fileName);
   auto br_result = pdb_instance.setBreakpointsAll(br);
-
-  if (br_result) {
-    std::cout << "\033[92mBreakpoints set at: " << function->second << ":"
-              << function->first << "\033[0m\n";
+  if (!br_result) {
+    throw std::logic_error("\033[92mError setting breakpoints at: " + fileName +
+                           ":" + pos + "\033[0m");
   } else {
-    std::cout << "\033[92mError setting breakpoints at: " << function->second
-              << ":" << function->first << "\033[0m\n";
+    std::cout << "\033[92mBreakpoints set at: " << fileName << ":" << pos
+              << "\033[0m\n";
   }
 }
+
+void infoCommand(const std::vector<std::string> &command,
+                 Debugger &pdb_instance) {
+  if (command[1] == "sources") {
+    auto source_array = pdb_instance.getSourceFiles();
+    if (source_array->size() == 0) {
+      throw std::logic_error("No source file information");
+    }
+
+    for (auto &iter : *source_array) {
+      printf("\033[92m%s\033[0m,", iter.c_str());
+      std::cout << std::endl;
+    }
+  } else if (command[1] == "func") {
+    std::string func_in_question = command[2];
+    auto function = pdb_instance.getFunctionLocation(func_in_question);
+    if (!function) {
+      throw std::logic_error("Unknown function: " + func_in_question);
+    } else {
+      std::cout << "\033[92m" << function->second << "\033[0m" << ":";
+      std::cout << "\033[92m" << function->first << "\033[0m" << std::endl;
+    }
+  }
+};
 
 int main() {
   using namespace pdb;

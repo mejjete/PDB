@@ -17,14 +17,11 @@ PDBProcess::PDBProcess() : fd_read_desc(io_context), fd_write_desc(io_context) {
 
   fd_read = ::mkstemp(tmp_read_file);
   if (fd_read < 0)
-    std::terminate();
+    throw std::runtime_error("Error creating temporal read pipe");
 
   fd_write = ::mkstemp(tmp_write_file);
   if (fd_write < 0)
-    std::terminate();
-
-  if ((fd_read < 0) || (fd_write < 0))
-    std::terminate();
+    throw std::runtime_error("Error creating temporal write pipe");
 
   ::close(fd_read);
   ::close(fd_write);
@@ -33,10 +30,10 @@ PDBProcess::PDBProcess() : fd_read_desc(io_context), fd_write_desc(io_context) {
   ::unlink(tmp_write_file);
 
   if (::mkfifo(tmp_read_file, 0666) < 0)
-    std::terminate();
+    throw std::runtime_error("Error creating read pipe");
 
   if (::mkfifo(tmp_write_file, 0666) < 0)
-    std::terminate();
+    throw std::runtime_error("Error creating write pipe");
 
   // Set them to NULL and open lately, we don't want to block here upon call to
   // open()
@@ -54,14 +51,14 @@ PDBProcess::~PDBProcess() {
   ::unlink(fd_write_name.c_str());
 }
 
-int PDBProcess::openFIFO() {
+void PDBProcess::openFIFO() {
   fd_read = ::open(fd_read_name.c_str(), O_RDONLY);
   if (fd_read < 0)
-    return fd_read;
+    throw std::runtime_error("Error opening read-end pipe");
 
   fd_write = ::open(fd_write_name.c_str(), O_WRONLY);
   if (fd_write < 0)
-    return fd_write;
+    throw std::runtime_error("Error opening write-end pipe");
 
   fd_read_desc.assign(fd_read);
   fd_write_desc.assign(fd_write);
@@ -89,7 +86,6 @@ int PDBProcess::openFIFO() {
                                  async_read_callback);
     this->io_context.run();
   });
-  return 0;
 }
 
 void PDBProcess::submitCommand(const std::string &msg) {

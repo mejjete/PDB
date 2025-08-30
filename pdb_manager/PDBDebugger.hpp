@@ -24,7 +24,7 @@ public:
   virtual PDBbr_list getBreakpointList() = 0;
 
   /**
-   * @brief Starts the execution of a debugger just by commiting "run"
+   * @brief Start the execution of debugger just by commiting "run"
    * @param args - additional arguments being passed to a debugger during
    * runtime
    * @return On error, throws std::runtime_error
@@ -32,7 +32,6 @@ public:
   virtual boost::leaf::result<void> startDebug(const std::string &args) = 0;
   virtual boost::leaf::result<void> endDebug() = 0;
   virtual boost::leaf::result<void> setBreakpoint(PDBbr brpoint) = 0;
-
   virtual std::vector<std::string> readInput() = 0;
 
   virtual boost::leaf::result<void>
