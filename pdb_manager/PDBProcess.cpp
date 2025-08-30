@@ -69,14 +69,18 @@ void PDBProcess::openFIFO() {
     std::function<void(boost::system::error_code, std::size_t)>
         async_read_callback = [&](boost::system::error_code ec, std::size_t n) {
           if (!ec && n > 0) {
+            // Separate strings by newline character and push onto the queue
             std::string line(local_buffer.begin(), local_buffer.begin() + n);
-            if (line.length() > 0)
-              read_queue.push(line);
-          } else if (ec == boost::asio::error::eof) {
-            ; //
+            std::string temp;
+            std::stringstream sstream(line);
+
+            while (std::getline(sstream, temp, '\n'))
+              read_queue.push(temp);
           }
 
-          // Read data again or quit
+          // This handler would eventuall wake up, and if there's nothing to
+          // read it would return with ec set to boost::asio::error_code::eof.
+          // In this case just do nothing and register another callback
           fd_read_desc.async_read_some(boost::asio::buffer(local_buffer),
                                        async_read_callback);
         };
@@ -94,19 +98,11 @@ void PDBProcess::submitCommand(const std::string &msg) {
 
 std::vector<std::string> PDBProcess::fetchByLinesUntil(const std::string &tm) {
   std::vector<std::string> result;
-  auto terminal_pos = std::string::npos;
+  std::string temp;
 
-  do {
-    std::string temp;
-    auto current_line = read_queue.pull();
-    std::stringstream sstream(current_line);
-
-    while (std::getline(sstream, temp, '\n') &&
-           terminal_pos == std::string::npos) {
-      result.push_back(temp);
-      terminal_pos = temp.find(tm);
-    }
-  } while (terminal_pos == std::string::npos);
+  while ((temp = read_queue.pull()) != tm) {
+    result.push_back(temp);
+  }
 
   return result;
 }
