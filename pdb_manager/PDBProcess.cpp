@@ -47,10 +47,8 @@ PDBProcess::PDBProcess() : fd_read_desc(io_context), fd_write_desc(io_context) {
 }
 
 PDBProcess::~PDBProcess() {
-  if (fd_read > 0)
-    ::close(fd_read);
-  if (fd_write > 0)
-    ::close(fd_write);
+  io_context.stop();
+  reader.join();
 
   ::unlink(fd_read_name.c_str());
   ::unlink(fd_write_name.c_str());
@@ -70,25 +68,50 @@ int PDBProcess::openFIFO() {
 
   // Submit a work
   reader = std::thread([this]() {
-    this->fd_read_desc.async_read_some(
-        boost::asio::buffer(this->local_buffer),
-        [this](boost::system::error_code ec, std::size_t n) {
+    // Callback to be called whenever we pipe is available for read
+    std::function<void(boost::system::error_code, std::size_t)>
+        async_read_callback = [&](boost::system::error_code ec, std::size_t n) {
           if (!ec && n > 0) {
-            std::string line(local_buffer.begin(), local_buffer.end());
-            read_queue.push(line);
+            std::string line(local_buffer.begin(), local_buffer.begin() + n);
+            if (line.length() > 0)
+              read_queue.push(line);
           } else if (ec == boost::asio::error::eof) {
-            std::cout << "Read complete" << std::endl;
-          } else if (ec) {
-            std::cerr << "Read error: " << ec.message() << std::endl;
+            ; //
           }
-        });
-  });
 
-  child = std::thread([this]() { this->io_context.run(); });
+          // Read data again or quit
+          fd_read_desc.async_read_some(boost::asio::buffer(local_buffer),
+                                       async_read_callback);
+        };
+
+    // Let it go
+    fd_read_desc.async_read_some(boost::asio::buffer(local_buffer),
+                                 async_read_callback);
+    this->io_context.run();
+  });
   return 0;
 }
 
-void PDBProcess::write(const std::string &msg) { return; }
+void PDBProcess::submitCommand(const std::string &msg) {
+  fd_write_desc.write_some(boost::asio::buffer(msg));
+}
 
-std::string PDBProcess::read() { std::string(""); };
+std::vector<std::string> PDBProcess::fetchByLinesUntil(const std::string &tm) {
+  std::vector<std::string> result;
+  auto terminal_pos = std::string::npos;
+
+  do {
+    std::string temp;
+    auto current_line = read_queue.pull();
+    std::stringstream sstream(current_line);
+
+    while (std::getline(sstream, temp, '\n') &&
+           terminal_pos == std::string::npos) {
+      result.push_back(temp);
+      terminal_pos = temp.find(tm);
+    }
+  } while (terminal_pos == std::string::npos);
+
+  return result;
+}
 } // namespace pdb

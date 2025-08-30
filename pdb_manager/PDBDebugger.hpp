@@ -54,7 +54,6 @@ private:
 
   // Leading \n is essential for gdb, it indicates end of input
   std::string makeCommand(std::string comm) { return comm += "\n"; };
-  std::vector<std::string> stringifyInput(const std::string &);
 
 public:
   // By default, gdb will launch with Machine Interface enabled

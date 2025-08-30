@@ -10,8 +10,8 @@ namespace pdb {
 std::string GDBDebugger::term = "(gdb) ";
 
 std::vector<std::string> GDBDebugger::readInput() {
-  auto string_to_read = PDBProcess::read_queue.pull();
-  return std::vector<std::string>(1, "");
+  // Fetch all lines from input until we get the terminating symbol in gdb
+  return fetchByLinesUntil(term);
 }
 
 boost::leaf::result<void>
@@ -23,29 +23,12 @@ GDBDebugger::checkInput(const std::vector<std::string> &str) const {
   return {};
 }
 
-std::vector<std::string> GDBDebugger::stringifyInput(const std::string &input) {
-  char *list = new char[input.length() + 1];
-  memcpy(list, input.c_str(), input.length());
-  list[input.length()] = 0;
-
-  char *token = strtok(list, "\n");
-  if (token == NULL)
-    return std::vector(1, input);
-
-  std::vector<std::string> string_array;
-  do {
-    string_array.push_back(token);
-  } while ((token = strtok(NULL, "\n")));
-
-  return string_array;
-}
-
 boost::leaf::result<void> GDBDebugger::endDebug() {
   std::string command = makeCommand("quit");
-  write(command);
+  submitCommand(command);
 
   // Skip whatever gdb has left on stdout just to let it exit peacefully
-  read();
+  // read();
   return {};
 }
 
@@ -75,7 +58,7 @@ boost::leaf::result<void> GDBDebugger::setBreakpoint(PDBbr brpoint) {
   // If breakpoint has not been set yet, add it to breakpoint list
   std::string command =
       makeCommand("b " + brpoint.second + ":" + std::to_string(brpoint.first));
-  write(command);
+  submitCommand(command);
 
   auto result = readInput();
   auto check = checkInput(result);
@@ -109,7 +92,7 @@ boost::leaf::result<void> GDBDebugger::setBreakpoint(PDBbr brpoint) {
       break;
   } while ((token = strtok(NULL, ",")));
 
-  // Thow an exception if we failed to parse command
+  // Return an error if we failed to parse command
   if (strstr(token, "addr") == NULL) {
     return boost::leaf::new_error<std::string>(
         "PDB: Failed parsing <br " + brpoint.second + ":" +

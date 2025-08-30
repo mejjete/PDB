@@ -18,7 +18,7 @@ class PDBProcess : std::enable_shared_from_this<PDBProcess> {
 public:
   PDBProcess();
   PDBProcess(const PDBProcess &) = delete;
-  PDBProcess(PDBProcess &&) = delete;
+  PDBProcess(PDBProcess &&) = default;
   ~PDBProcess();
 
   std::pair<std::string, std::string> getPipeNames() const {
@@ -32,11 +32,11 @@ public:
   size_t size() const;
 
 protected:
-  // Issues a read from a process read-end pipe
-  std::string read();
+  // Read a read-end pipe until tm
+  std::vector<std::string> fetchByLinesUntil(const std::string &tm);
 
   // Issues a write to a process write-end pipe
-  void write(const std::string &);
+  void submitCommand(const std::string &);
 
   boost::sync_queue<std::string> read_queue;
 
@@ -54,7 +54,6 @@ private:
   std::string fd_read_name;
   std::string fd_write_name;
 
-  std::thread child;
   std::thread reader;
 };
 } // namespace pdb
