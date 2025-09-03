@@ -213,7 +213,7 @@ PDBDebug<DebuggerType>::PDBDebug(const std::string &start_rountine,
   new_argv[new_arg_size][exec.length()] = 0;
   new_arg_size++;
 
-  // Step 6: add named pipe name
+  // Step 6: add pipe names
   new_argv[new_arg_size] = new char[strlen(temp_file) + 1];
   memcpy(new_argv[new_arg_size], temp_file, strlen(temp_file));
   new_argv[new_arg_size][strlen(temp_file)] = 0;
@@ -259,7 +259,7 @@ PDBDebug<DebuggerType>::PDBDebug(const std::string &start_rountine,
   for (auto &proc : pdb_proc)
     proc->openFIFO();
 
-  // Read out initial print from gdb to clear input for subsequent commands
+  // Read out initial print from debugger to clear input for subsequent commands
   for (auto &proc : pdb_proc) {
     proc->checkInput(proc->readInput());
   }
