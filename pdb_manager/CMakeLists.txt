@@ -29,7 +29,7 @@ llvm_map_components_to_libnames(llvm_libs
 
 target_compile_options(pdbmanager PRIVATE -Wall -Wextra -Wunused-parameter)
 target_compile_definitions(pdbmanager PUBLIC -DBOOST_LEAF_NO_EXCEPTIONS)
-target_compile_options(dwarf_handlers PRIVATE -Wall -Wextra -fno-exceptions)
+target_compile_options(dwarf_handlers PRIVATE -fno-exceptions)
 
 target_include_directories(pdbmanager PRIVATE pdb_runtime ${CMAKE_CURRENT_SOURCE_DIR} ${Boost_INCLUDE_DIRS})
 target_include_directories(pdb_launch PRIVATE pdb_runtime ${Boost_INCLUDE_DIRS})
