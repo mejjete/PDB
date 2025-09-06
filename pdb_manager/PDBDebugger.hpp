@@ -62,7 +62,7 @@ private:
    * records is terminated by "(gdb) ". It can be used as a separator for
    * internal parser.
    */
-  static std::string term;
+  static const std::string term;
 
   // Leading \n is essential for gdb, it indicates end of input
   std::string makeCommand(std::string comm) { return comm += "\n"; };
@@ -81,5 +81,27 @@ public:
   virtual void checkInput(const std::vector<std::string> &) const;
 
   static std::string getDefaultOptions() { return "-q --interpreter=mi2"; };
+};
+
+// LLVM lldb-dap interface
+class LLDBDebugger : public PDBDebugger {
+private:
+  static const std::string term;
+
+public:
+  LLDBDebugger() {};
+  virtual ~LLDBDebugger() {};
+
+  virtual void setBreakpoint(PDBbr);
+  virtual PDBbr_list getBreakpointList() { return breakpoints; };
+  virtual void startDebug(const std::string &);
+  virtual void endDebug();
+  virtual std::vector<std::string> readInput();
+
+  virtual void checkInput(const std::vector<std::string> &) const;
+
+  static std::string getDefaultOptions() { return ""; };
+
+  virtual void openFIFO();
 };
 } // namespace pdb

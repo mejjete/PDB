@@ -7,7 +7,7 @@
 #include <vector>
 
 namespace pdb {
-std::string GDBDebugger::term = "(gdb) ";
+const std::string GDBDebugger::term = "(gdb) ";
 
 std::vector<std::string> GDBDebugger::readInput() {
   // Fetch all lines from input until we get the terminating symbol

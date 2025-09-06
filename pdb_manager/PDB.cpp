@@ -1,4 +1,5 @@
 #include <PDB.hpp>
+#include <boost/process.hpp>
 #include <cstdio>
 #include <fcntl.h>
 #include <iostream>
@@ -7,7 +8,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-using Debugger = pdb::PDBDebug<pdb::GDBDebugger>;
+using Debugger = pdb::PDBDebug<pdb::LLDBDebugger>;
 
 void brCommand(const std::vector<std::string> &command, Debugger &pdb_instance);
 void infoCommand(const std::vector<std::string> &command,
@@ -111,7 +112,11 @@ void infoCommand(const std::vector<std::string> &command,
 
 int main() {
   using namespace pdb;
-  auto debug = Debugger("mpirun -np 1", "/usr/bin/gdb", "./mpi_test.out");
+  const std::string debuggerName = "lldb-dap";
+  auto debuggerPath =
+      boost::process::environment::find_executable(debuggerName);
+  auto debug = Debugger("mpirun -np 1", "/opt/llvm-release/bin/lldb-dap",
+                        "./mpi_test.out");
   PDBcommand(debug);
   return 0;
 }
