@@ -30,13 +30,11 @@ public:
   virtual void openFIFO();
 
 protected:
-  // Read a read-end pipe until tm
+  // Blocking read to monitor the input stream until the line tm occurs
   std::vector<std::string> fetchByLinesUntil(const std::string &tm);
 
   // Issues a write to a process write-end pipe
   void submitCommand(const std::string &);
-
-  boost::sync_queue<std::string> read_queue;
 
 private:
   int fd_read;
@@ -46,7 +44,10 @@ private:
 
   boost::asio::posix::stream_descriptor fd_read_desc;
   boost::asio::posix::stream_descriptor fd_write_desc;
-  std::array<char, 4096> local_buffer;
+
+  boost::asio::streambuf local_buffer;
+  boost::asio::streambuf global_buffer;
+  std::mutex buffer_mutex;
 
   // File names for named pipes
   std::string fd_read_name;

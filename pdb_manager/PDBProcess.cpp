@@ -69,24 +69,33 @@ void PDBProcess::openFIFO() {
     std::function<void(boost::system::error_code, std::size_t)>
         async_read_callback = [&](boost::system::error_code ec, std::size_t n) {
           if (!ec && n > 0) {
-            // Separate strings by newline character and push onto the queue
-            std::string line(local_buffer.begin(), local_buffer.begin() + n);
-            std::string temp;
-            std::stringstream sstream(line);
+            {
+              // Make the data available on read-end
+              std::lock_guard lock(buffer_mutex);
+              local_buffer.commit(n);
 
-            while (std::getline(sstream, temp, '\n'))
-              read_queue.push(temp);
+              std::istream srcStream(&local_buffer);
+              std::ostream dstStream(&global_buffer);
+
+              std::vector<char> temp(n);
+              srcStream.read(temp.data(), n);
+              dstStream.write(temp.data(), n);
+              global_buffer.commit(n);
+            }
+
+            // This handler would eventually wake up, and if there's nothing to
+            // read, it would return with ec set to
+            // boost::asio::error_code::eof. In this case just do nothing and
+            // register another callback
+            fd_read_desc.async_read_some(local_buffer.prepare(1024),
+                                         async_read_callback);
+          } else if (ec && ec != boost::asio::error::eof) {
+            ; // On error, do not register any sebsequent callbacks anymore
           }
-
-          // This handler would eventuall wake up, and if there's nothing to
-          // read it would return with ec set to boost::asio::error_code::eof.
-          // In this case just do nothing and register another callback
-          fd_read_desc.async_read_some(boost::asio::buffer(local_buffer),
-                                       async_read_callback);
         };
 
     // Let it go
-    fd_read_desc.async_read_some(boost::asio::buffer(local_buffer),
+    fd_read_desc.async_read_some(local_buffer.prepare(1024),
                                  async_read_callback);
     this->io_context.run();
   });
@@ -100,9 +109,32 @@ std::vector<std::string> PDBProcess::fetchByLinesUntil(const std::string &tm) {
   std::vector<std::string> result;
   std::string temp;
 
-  while ((temp = read_queue.pull()) != tm) {
-    result.push_back(temp);
-  }
+  // Read a global buffer until EOF, then release the lock and either exit if
+  // tm was found or continue to read
+  do {
+    bool isFound = false;
+
+    {
+      if (buffer_mutex.try_lock()) {
+        std::istream istream(&global_buffer);
+
+        while (std::getline(istream, temp)) {
+          if (temp == tm)
+            break;
+
+          result.push_back(temp);
+        }
+
+        buffer_mutex.unlock();
+      }
+    }
+
+    if (isFound)
+      break;
+
+    // To minimize mutex ownership time
+    std::this_thread::sleep_for(std::chrono::microseconds(1000));
+  } while (true);
 
   return result;
 }
