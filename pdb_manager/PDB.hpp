@@ -357,15 +357,21 @@ void PDBDebug<DebuggerType>::setBreakpoint(size_t proc, PDBbr brpoints) {
 
 template <typename DebuggerType>
 std::vector<std::string> PDBDebug<DebuggerType>::getSourceFiles() const {
-  auto result = dwarfGetSourceFiles(executable);
-  return *result;
+  std::vector<std::string> result;
+  auto retCode = dwarfGetSourceFiles(executable, result);
+  if (retCode < 0)
+    throw std::runtime_error("Error obtaining source files\n");
+  return result;
 }
 
 template <typename DebuggerType>
 std::pair<uint64_t, std::string> PDBDebug<DebuggerType>::getFunctionLocation(
     const std::string &func_name) const {
-  auto result = dwarfGetFunctionLocation(executable, func_name);
-  return *result;
+  std::pair<uint64_t, std::string> result;
+  auto retCode = dwarfGetFunctionLocation(executable, func_name, result);
+  if (retCode < 0)
+    throw std::runtime_error("Error obtaining function location\n");
+  return result;
 }
 
 template <typename DebuggerType>

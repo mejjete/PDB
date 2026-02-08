@@ -1,4 +1,3 @@
-#include <boost/leaf.hpp>
 #include <llvm/DebugInfo/DWARF/DWARFContext.h>
 #include <llvm/DebugInfo/DWARF/DWARFDie.h>
 #include <llvm/DebugInfo/DWARF/DWARFUnit.h>
@@ -12,20 +11,16 @@ int dwarfGetSourceFiles(const std::string &exec_path,
   // containing in executable
   auto expected_buffer = llvm::MemoryBuffer::getFile(exec_path);
   if (!expected_buffer)
-    return boost::leaf::new_error<std::string>("Error reading executable");
+    return -1;
 
   auto expected_obj_file = llvm::object::ObjectFile::createObjectFile(
       expected_buffer->get()->getMemBufferRef());
   if (!expected_obj_file)
-    return boost::leaf::new_error<std::string>(
-        "Error creating in-memory executable object");
+    return -1;
 
   auto dwarf_context = llvm::DWARFContext::create(**expected_obj_file);
   if (!dwarf_context)
-    return boost::leaf::new_error<std::string>(
-        "Error initializing DWARF information");
-
-  std::vector<std::string> files;
+    return -1;
 
   for (const auto &CU : dwarf_context->compile_units()) {
     if (!CU)
@@ -49,11 +44,11 @@ int dwarfGetSourceFiles(const std::string &exec_path,
         path += *name;
 
       if (!path.empty())
-        files.push_back(path);
+        result.push_back(path);
     }
   }
 
-  return files;
+  return 0;
 }
 
 int dwarfGetFunctionLocation(const std::string &exec_path,
@@ -63,18 +58,16 @@ int dwarfGetFunctionLocation(const std::string &exec_path,
   // containing in executable
   auto expected_buffer = llvm::MemoryBuffer::getFile(exec_path);
   if (!expected_buffer)
-    return boost::leaf::new_error<std::string>("Error reading executable");
+    return -1;
 
   auto expected_obj_file = llvm::object::ObjectFile::createObjectFile(
       expected_buffer->get()->getMemBufferRef());
   if (!expected_obj_file)
-    return boost::leaf::new_error<std::string>(
-        "Error creating in-memory executable object");
+    return -1;
 
   auto dwarf_context = llvm::DWARFContext::create(**expected_obj_file);
   if (!dwarf_context)
-    return boost::leaf::new_error<std::string>(
-        "Error initializing DWARF information");
+    return -1;
 
   for (const auto &CU : dwarf_context->compile_units()) {
     for (const auto &entry : CU->dies()) {
@@ -88,12 +81,13 @@ int dwarfGetFunctionLocation(const std::string &exec_path,
                 llvm::DILineInfoSpecifier::FileLineInfoKind::RawValue);
             // Obtain function line number
             uint64_t file_line = die.getDeclLine();
-            return std::make_pair(file_line, file_idx);
+            result.first = file_line;
+            result.second = file_idx;
           }
         }
       }
     }
   }
 
-  return boost::leaf::new_error<std::string>("Unknown function: " + func_name);
+  return -1;
 }
