@@ -36,7 +36,7 @@ target_compile_options(dwarf_handlers PRIVATE -fno-exceptions)
 target_include_directories(pdbmanager PRIVATE pdb_runtime ${CMAKE_CURRENT_SOURCE_DIR} ${Boost_INCLUDE_DIRS})
 target_include_directories(pdb_launch PRIVATE pdb_runtime ${Boost_INCLUDE_DIRS})
 target_include_directories(pdb_man PRIVATE pdb_runtime ${CMAKE_CURRENT_SOURCE_DIR} ${Boost_INCLUDE_DIRS})
-target_include_directories(dwarf_handlers PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${LLVM_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
+target_include_directories(dwarf_handlers PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${LLVM_INCLUDE_DIRS})
 
 target_link_libraries(pdbmanager PRIVATE Boost::system Boost::filesystem Boost::coroutine Boost::thread Boost::json dwarf_handlers)
 target_link_libraries(pdb_man PRIVATE pdbmanager Boost::system Boost::filesystem Boost::process)
