@@ -6,8 +6,8 @@
 #include <llvm/Support/Error.h>
 #include <llvm/Support/MemoryBuffer.h>
 
-boost::leaf::result<std::vector<std::string>>
-dwarfGetSourceFiles(const std::string &exec_path) {
+int dwarfGetSourceFiles(const std::string &exec_path,
+                        std::vector<std::string> &result) {
   // Create and initialize in-memory representation of DWARF information
   // containing in executable
   auto expected_buffer = llvm::MemoryBuffer::getFile(exec_path);
@@ -56,9 +56,9 @@ dwarfGetSourceFiles(const std::string &exec_path) {
   return files;
 }
 
-boost::leaf::result<std::pair<uint64_t, std::string>>
-dwarfGetFunctionLocation(const std::string &exec_path,
-                         const std::string &func_name) {
+int dwarfGetFunctionLocation(const std::string &exec_path,
+                             const std::string &func_name,
+                             std::pair<uint64_t, std::string> &result) {
   // Create and initialize in-memory representation of DWARF information
   // containing in executable
   auto expected_buffer = llvm::MemoryBuffer::getFile(exec_path);

@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-boost::leaf::result<std::vector<std::string>>
-dwarfGetSourceFiles(const std::string &exec_path);
+int dwarfGetSourceFiles(const std::string &exec_path,
+                        std::vector<std::string> &result);
 
-boost::leaf::result<std::pair<std::size_t, std::string>>
-dwarfGetFunctionLocation(const std::string &exec_path,
-                         const std::string &func_name);
+int dwarfGetFunctionLocation(const std::string &exec_path,
+                             const std::string &func_name,
+                             std::pair<uint64_t, std::string> &result);
