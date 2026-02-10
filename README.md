@@ -30,8 +30,8 @@ $ sudo apt update
 # Install the Boost development libraries
 $ sudo apt install libboost-all-dev
 
-# Install the LLVM 18 toolchain and more
-$ sudo apt install llvm-18-dev libdwarf-dev libzstd-dev
+# Install the LLVM 20 toolchain
+$ sudo apt install llvm-20-dev libdwarf-dev libzstd-dev
 ```
 
 **MacOS**
@@ -43,8 +43,8 @@ $ brew upgrade
 # Install the Boost development libraries
 $ brew install boost
 
-# Install the LLVM 18 toolchain
-$ brew install llvm-18-dev libdwarf-dev libzstd-dev
+# Install the LLVM 20 toolchain
+$ brew install llvm-20-dev libdwarf-dev libzstd-dev
 ```
 
 > [!Note]
